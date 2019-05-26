@@ -4,7 +4,13 @@ Purpose: Import Microsoft Excel files from arbitrary location to
 Google Sheets workbook.
 
 ### Quick install ###
-If you have **Go** installed, 
+If you have **Go** installed, run the following:
+```sh
+go get -u github.com/rusq/xls2sheets
+go install github.com/rusq/xls2sheets/cmd/sheets-refresh
+```
+Otherwise, you can download the executable for your OS from [Releases][2]
+page.
 
 ### Quickstart ###
 1. Turn on the Google Sheets API described in Golang [quickstart][1], and
@@ -95,3 +101,4 @@ Saving credential file to: /Users/you/Library/Caches/rusq/sheets-refresh/sheet-r
 ```
 
 [1]: https://developers.google.com/sheets/api/quickstart/go
+[2]: /releases
