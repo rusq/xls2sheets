@@ -1,0 +1,14 @@
+# config
+token.json
+credentials.json
+
+# executables
+cmd/sheets-refresh/sheets-refresh
+cmd/sheets-refresh/sheets-refresh.exe
+examples/drive/drive
+
+# IDE files
+.vscode/*
+
+# backup files
+*~

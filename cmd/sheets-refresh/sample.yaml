@@ -1,0 +1,32 @@
+# 
+# Sample job for fetching RBNZ exchange sheets and load them into a
+# test spreadsheet from https://www.rbnz.govt.nz/statistics/b1
+#
+# To use this file:
+#   1. Create an empty Google Spreadsheet.
+#   2. Copy and Paste the spreadsheet_id into this configuration file.
+#   3. Compile and run sheets-refresh
+#
+# This should populate the empty spreadsheet with data from RBNZ website.
+01_monthly_rates:
+  source:
+    location: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-monthly.xlsx
+    address_range:
+      - Data!A1:U
+  target:
+    spreadsheet_id: 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
+    address:
+      - Monthly Rates
+    create: true
+    clear: true
+02_daily_rates:
+  source:
+    location: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-daily.xlsx
+    address_range:
+      - Data!A1:T
+  target:
+    spreadsheet_id: 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
+    address:
+      - Daily Rates
+    create: true
+    clear: true
