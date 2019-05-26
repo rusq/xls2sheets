@@ -7,13 +7,12 @@ import (
 	"log"
 	"os"
 
-	"google.golang.org/api/sheets/v4"
-
 	"github.com/rusq/xls2sheets"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/drive/v3"
+	"google.golang.org/api/sheets/v4"
 )
 
 var defaultCredentialsFile = os.ExpandEnv("${HOME}/.refresh-credentials.json")
@@ -60,13 +59,16 @@ func main() {
 		}
 	}
 
+	// initialising client
 	client := getClient(config)
 
+	// running job
 	if err := job.Execute(client); err != nil {
 		log.Fatal(err)
 	}
 }
 
+// prepareConfig loads configuration from disk and prepares oauth2.Config
 func prepareConfig(credentialsFile string) (*oauth2.Config, error) {
 	fileInfo, err := os.Stat(credentialsFile)
 	if err != nil {
