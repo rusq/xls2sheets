@@ -101,4 +101,4 @@ Saving credential file to: /Users/you/Library/Caches/rusq/sheets-refresh/sheet-r
 ```
 
 [1]: https://developers.google.com/sheets/api/quickstart/go
-[2]: /releases
+[2]: https://github.com/rusq/xls2sheets/releases
