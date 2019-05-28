@@ -112,7 +112,10 @@ func (sf *SourceFile) upload(client *http.Client, sourceData io.Reader) (string,
 			googleapi.ContentType(xlsxMIME), // source file MIME type
 		).
 		Do()
-
+	if err != nil {
+		return "", err
+	}
+	
 	return sf.file.Id, err
 }
 

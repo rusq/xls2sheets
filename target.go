@@ -119,7 +119,7 @@ func (ts *TargetSpreadsheet) Update(client *http.Client, spreadsheetID string, s
 
 // updateSheet updates only one sheet
 func (ts *TargetSpreadsheet) updateSheet(sheetsService *sheets.Service, data *sheets.ValueRange) (*sheets.BatchUpdateValuesResponse, error) {
-	const valueInputOption = "RAW"
+	const valueInputOption = "USER_ENTERED" // proper formatting of resulting values
 
 	// Reference: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/batchUpdate
 	rb := &sheets.BatchUpdateValuesRequest{
@@ -131,6 +131,7 @@ func (ts *TargetSpreadsheet) updateSheet(sheetsService *sheets.Service, data *sh
 		BatchUpdate(ts.SpreadsheetID, rb).
 		Context(context.TODO()).
 		Do()
+
 	if err != nil {
 		return nil, err
 	}
