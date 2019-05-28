@@ -9,6 +9,13 @@ examples/drive/drive
 
 # IDE files
 .vscode/*
+.idea/*
 
 # backup files
 *~
+
+#OS files
+.DS_Store
+
+#vendoring
+vendor

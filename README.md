@@ -5,23 +5,30 @@ Google Sheets workbook.
 
 ### Quick install ###
 If you have **Go** installed, run the following:
+
 ```sh
 go get -u github.com/rusq/xls2sheets
 go install github.com/rusq/xls2sheets/cmd/sheets-refresh
 ```
-Otherwise, you can download the executable for your OS from [Releases][2]
+
+Otherwise, you can download the executable for your OS from [Releases][1]
 page.
 
 ### Quickstart ###
-1. Turn on the Google Sheets API described in Golang [quickstart][1], and
-   download the `credentials.json` file.
-2. Copy or move it to `$HOME/.refresh-credentials.json` and set mode 400 or
+1. Turn on the Google Sheets API described in Golang [quickstart][2], and
+   download the `credentials.json` file.  If you need to tweak access, you
+   can always do so in [Google API & Services Console][3]
+2. Turn on the Google Drive API as described in [drive quickstart][4].
+   No need to download `credentials.json`.
+3. Copy or move it to `$HOME/.refresh-credentials.json` and set mode 400 or
    600 on the file.
-3. Create a configuration file that will list the required source files
+4. Create a configuration file that will list the required source files
    and target spreadsheets (see [Sample configuration](#example)).
-4. During the first start you will be prompted to authorise application
+5. During the first start you will be prompted to authorise application
    with your Google account.  Once authorised, copy and paste the
    authorisation code from the browser into the prompt.
+
+
 
 ### Configuration ###
 * Configuration file describes a **Job** to be performed.
@@ -100,5 +107,7 @@ Saving credential file to: /Users/you/Library/Caches/rusq/sheets-refresh/sheet-r
 2019/05/19 18:37:40     * OK: 7061 cells updated
 ```
 
-[1]: https://developers.google.com/sheets/api/quickstart/go
-[2]: https://github.com/rusq/xls2sheets/releases
+[1]: https://github.com/rusq/xls2sheets/releases
+[2]: https://developers.google.com/sheets/api/quickstart/go
+[3]: https://console.developers.google.com/apis/dashboard?authuser=0
+[4]: https://developers.google.com/drive/api/v3/quickstart/go
