@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"google.golang.org/api/drive/v3"
@@ -41,30 +45,54 @@ var (
 	errNothingToDelete = errors.New("delete called before upload")
 )
 
-// fetch opens a source file
-func (sf *SourceFile) fetch() (io.ReadCloser, error) {
+// fetchFromWeb loads a source file on a remote server
+func fetchFromWeb(uri string) (io.ReadCloser, error) {
 	tlsConfig := tls.Config{
 		InsecureSkipVerify: true,
 	}
 	transport := &http.Transport{TLSClientConfig: &tlsConfig}
 
 	insecureClient := &http.Client{Transport: transport}
-	req, err := http.NewRequest(http.MethodGet, sf.FileLocation, nil)
+	req, err := http.NewRequest(http.MethodGet, uri, nil)
 	if err != nil {
 		return nil, err
 	}
 	resp, err := insecureClient.Do(req)
-	// resp, err := http.Get(sf.FileLocation)
 	if err != nil {
 		return nil, err
 	}
 	return resp.Body, nil
 }
 
+func fetch(loc string) (io.ReadCloser, error) {
+	switch {
+	case strings.HasPrefix(strings.ToLower(loc), "http"):
+		return fetchFromWeb(loc)
+	case strings.HasPrefix(strings.ToLower(loc), "file://"):
+		filename, err := getFilename(loc)
+		if err != nil {
+			return nil, err
+		}
+		return os.Open(filename)
+	default:
+		return os.Open(loc)
+	}
+	// UNREACHABLE
+}
+
+func getFilename(loc string) (string, error) {
+	url, err := url.Parse(loc)
+	if err != nil {
+		return "", err
+	}
+	// dirty hax
+	return filepath.Join(url.Host, url.Path), nil
+}
+
 // FetchAndUpload downloads the file from source and uploads it to Google
 // Drive
 func (sf *SourceFile) FetchAndUpload(client *http.Client) (string, error) {
-	src, err := sf.fetch()
+	src, err := fetch(sf.FileLocation)
 	if err != nil {
 		return "", err
 	}
@@ -115,7 +143,7 @@ func (sf *SourceFile) upload(client *http.Client, sourceData io.Reader) (string,
 	if err != nil {
 		return "", err
 	}
-	
+
 	return sf.file.Id, err
 }
 
