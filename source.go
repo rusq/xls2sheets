@@ -32,7 +32,7 @@ type SourceFile struct {
 	// Valid values:
 	//
 	// 		https://www.example.com/dataset.xlsx
-	//		file://MyWorkbook.xlsx  -- not implemented yet!
+	//		file://MyWorkbook.xlsx
 	FileLocation string `yaml:"location"`
 	// SheetAddress is the address within the source workbook.
 	// I.e. "Data!A1:U"
