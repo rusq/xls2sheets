@@ -8,19 +8,20 @@ import (
 
 func Test_generateName(t *testing.T) {
 	type args struct {
-		prefix string
+		prefix    string
+		extension string
 	}
 	tests := []struct {
 		name string
 		args args
 		want string
 	}{
-		{"with prefix", args{"prefix"}, "prefix" + strconv.Itoa(int(time.Now().Unix())) + ".xlsx"},
-		{"no prefix", args{""}, strconv.Itoa(int(time.Now().Unix())) + ".xlsx"},
+		{"with prefix", args{"prefix", ".xlsx"}, "prefix" + strconv.Itoa(int(time.Now().Unix())) + ".xlsx"},
+		{"no prefix", args{"", ""}, strconv.Itoa(int(time.Now().Unix())) + ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := generateName(tt.args.prefix); got != tt.want {
+			if got := generateName(tt.args.prefix, tt.args.extension); got != tt.want {
 				t.Errorf("generateName() = %v, want %v", got, tt.want)
 			}
 		})
@@ -50,6 +51,28 @@ func Test_getFilename(t *testing.T) {
 			}
 			if got != tt.want {
 				t.Errorf("getFilename() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_getMIME(t *testing.T) {
+	type args struct {
+		filename string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"excel", args{"My Documents/filename.xls"}, xlsMIME},
+		{"xlsx", args{"My Documents/filename.xlsx"}, xlsxMIME},
+		{"unknown", args{"/images/facepalm.jpg"}, xlsxMIME},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := getMIME(tt.args.filename); got != tt.want {
+				t.Errorf("getMIME() = %v, want %v", got, tt.want)
 			}
 		})
 	}
