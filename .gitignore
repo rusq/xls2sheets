@@ -19,3 +19,8 @@ examples/drive/drive
 
 #vendoring
 vendor
+
+# test files
+*.xls
+*.xlsx
+*.yaml
