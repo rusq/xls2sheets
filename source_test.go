@@ -40,7 +40,8 @@ func Test_getFilename(t *testing.T) {
 	}{
 		{"just file", args{"file://sample.xls"}, "sample.xls", false},
 		{"full path", args{"file:///tmp/subdir/subdir2/file.txt"}, "/tmp/subdir/subdir2/file.txt", false},
-		{"current dir file", args{"file://./for_anna.xls"}, "for_anna.xls", false},
+		{"current dir file", args{"file://./some_old_file.xls"}, "some_old_file.xls", false},
+		{"url parse error", args{"://what_proto_is_that?"}, "", true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
