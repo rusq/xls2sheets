@@ -109,7 +109,10 @@ func removeToken(tokenFile string) error {
 	if tokenPath == "" {
 		return nil
 	}
-	return os.Remove(tokenPath)
+	if err := os.Remove(tokenPath); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
 
 // getTokenPath returns the path for the tokenFile.  If file not found
