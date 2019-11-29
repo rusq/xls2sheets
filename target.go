@@ -93,7 +93,7 @@ func (ts *TargetSpreadsheet) Update(client *http.Client, spreadsheetID string, s
 	}
 
 	for sheetIdx := range sheetAddressRange {
-		log.Printf("  * copy range %s to %s", sheetAddressRange[sheetIdx], ts.SheetAddress[sheetIdx])
+		log.Printf("  * copy range %q to %q", sheetAddressRange[sheetIdx], ts.SheetAddress[sheetIdx])
 		// getting source values
 		values, err := sheetsService.Spreadsheets.Values.Get(spreadsheetID, sheetAddressRange[sheetIdx]).Do()
 		if err != nil {
