@@ -1,7 +1,17 @@
 # Excel To Google Sheets Importer #
 
-Purpose: Import Microsoft Excel files from arbitrary location to
-Google Sheets workbook.
+Purpose: Import Microsoft Excel or Google Spreadsheet files from arbitrary
+location to Google Sheets workbook.
+
+Supported Sources:
+
+  * Microsoft Excel files (xls and xlsx files) on local disk or remote web
+    site;
+  * Google Sheets spreadsheet.
+
+Supported Targets:
+
+  * Google Sheets spreadsheet.
 
 ## Features ##
 
@@ -15,17 +25,6 @@ Google Sheets workbook.
 * Copy multiple worsheets (or ranges) to multiple target worksheets, i.e.:
   * Range "Rates!A1:H12" in source file to "Rates2019" worksheet in target;
   * Range "Rates!A13:H24" in source file to "Rates2020 worksheet in target;
-
-Supported Sources:
-
-  * Microsoft Excel files (xls and xlsx files) on local disk or remote web
-    site;
-  * Google Sheets spreadsheet.
-
-Supported Targets:
-
-  * Google Sheets spreadsheet.
-
 
 ### Quick install ###
 If you have **Go** installed, run the following:
