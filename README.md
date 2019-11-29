@@ -3,6 +3,30 @@
 Purpose: Import Microsoft Excel files from arbitrary location to
 Google Sheets workbook.
 
+## Features ##
+
+* Many-to-One: Multiple Source spreadsheets can be combined into one Google
+  Sheets Document;
+* One-to-Many: One source file can be split into several different Google
+  Sheets Documents;
+* Allows to specify the Range within the source to copy and a target
+  worksheet, i.e. copy "Rates!A1:H20" from source to "Rates" worksheet in
+  target GS document;
+* Copy multiple worsheets (or ranges) to multiple target worksheets, i.e.:
+  * Range "Rates!A1:H12" in source file to "Rates2019" worksheet in target;
+  * Range "Rates!A13:H24" in source file to "Rates2020 worksheet in target;
+
+Supported Sources:
+
+  * Microsoft Excel files (xls and xlsx files) on local disk or remote web
+    site;
+  * Google Sheets spreadsheet.
+
+Supported Targets:
+
+  * Google Sheets spreadsheet.
+
+
 ### Quick install ###
 If you have **Go** installed, run the following:
 
@@ -11,34 +35,35 @@ go get -u github.com/rusq/xls2sheets
 go install github.com/rusq/xls2sheets/cmd/sheets-refresh
 ```
 
-Otherwise, you can download the executable for your OS from [Releases][1]
-page.
+Otherwise, you can download the executable for your Operating System from
+[Releases][1] page.
 
 ### Quickstart ###
 1. Turn on the Google Sheets API described in Golang [quickstart][2], and
    download the `credentials.json` file.  If you need to tweak access, you
    can always do so in [Google API & Services Console][3]
-2. Turn on the Google Drive API as described in [drive quickstart][4].
-   No need to download `credentials.json`.
+2. Turn on the Google Drive API as described in [drive quickstart][4].  No
+   need to download `credentials.json` again, as it has already been
+   downloaded on Step 1.
 3. Copy or move it to `$HOME/.refresh-credentials.json` and set mode 400 or
    600 on the file.
-4. Create a configuration file that will list the required source files
-   and target spreadsheets (see [Sample configuration](#example)).
-5. During the first start you will be prompted to authorise application
-   with your Google account.  Once authorised, copy and paste the
-   authorisation code from the browser into the prompt.
-
-
+4. Create a configuration file that will list the required source files and
+   target spreadsheets (see [Sample configuration](#example)).
+5. During the first start you will be prompted to authorise application with
+   your Google account.  There's no risk, as it is the application that was
+   created on Step 1.  Once authorised, copy and paste the authorisation
+   code from the browser into the prompt.
 
 ### Configuration ###
 * Configuration file describes a **Job** to be performed.
 * A **Job** consists of one or more **Tasks**.
 * Each **Task** has a name, and **Source** and **Target** sections.
-  * In **Source** one must specify a *URI of the MS Excel file* (xlsx) and
-    one or more *Address Ranges* to be processed, i.e. "*Workbook!A1:C1000*".
-  * In **Target** - a *Google SpreadsheetID* and one or more *Address* to
-    copy to, i.e. "Backup!A1".  Optionally, one can specify whether
-    to Create or Clear the destination Sheet before copying.
+  * In **Source** one must specify a *URI of the MS Excel file* (xlsx) or ID
+    of source Google Sheets Document and one or more *Address Ranges* to be
+    processed, i.e. "*Workbook!A1:C1000*" or "*Sheet1!A2:U*".
+  * In **Target** - a *Google SpreadsheetID* and one or more *Address* to copy
+    to, i.e. "Backup!A1".  Optionally, one can specify whether to *Create* the
+    worksheet or *Clear* the destination worksheet before copying.
   * It is important to have exactly same number of **Source Address Range**
     entries and **Target Addresses**.  I.e. if you're about to copy
     two sheets from an Excel file, make sure that you specify two target
@@ -47,6 +72,12 @@ page.
 The Example file below contains all possible configuration entries.
 
 #### Example ####
+
+In the example two source files are combined into one Google Sheets Document:
+
+* The range "Data!A1:U" of file *hb1-monthly.xlsx* is imported into "Monthly Rates"
+  worksheet of Google Sheets Document
+
 ```yaml
 # 
 # Sample job for fetching RBNZ exchange sheets and load them into a
