@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/rusq/xls2sheets"
 
@@ -15,23 +16,29 @@ import (
 	"google.golang.org/api/sheets/v4"
 )
 
-var defaultCredentialsFile = os.ExpandEnv("${HOME}/.refresh-credentials.json")
+var build = ""
+
+var defaultCredentialsFile = os.ExpandEnv(filepath.Join("${HOME}", ".refresh-credentials.json"))
 
 // command line parameters
 var (
 	resetAuth = flag.Bool("reset", false, "deletes the locally stored token before execution\n"+
 		"this will trigger reauthentication")
 	credentials = flag.String("auth", defaultCredentialsFile, "file with authentication data")
-
-	jobConfig = flag.String("job", "", "`yaml file` with job definition")
+	jobConfig   = flag.String("job", "", "configuration `file` with job definition")
+	version     = flag.Bool("version", false, "print program version and quit")
 )
 
 func main() {
 	flag.Parse()
 
+	if *version {
+		fmt.Println(build)
+		os.Exit(0)
+	}
+
 	// check parameters
 	if *jobConfig == "" {
-		flag.Usage()
 		log.Fatal("no -job <yaml file> specified")
 	}
 
@@ -60,7 +67,10 @@ func main() {
 	}
 
 	// initialising client
-	client := getClient(config)
+	client, err := googleClient(config)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// running job
 	if err := job.Execute(client); err != nil {
