@@ -1,6 +1,8 @@
 package xls2sheets
 
 import (
+	"io/ioutil"
+	"os"
 	"strconv"
 	"testing"
 	"time"
@@ -74,6 +76,38 @@ func Test_getMIME(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := getMIME(tt.args.filename); got != tt.want {
 				t.Errorf("getMIME() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_fileType(t *testing.T) {
+	f, err := ioutil.TempFile("", tempFilePrefix+"*")
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+	defer func() {
+		os.Remove(f.Name())
+	}()
+	type args struct {
+		loc string
+	}
+	tests := []struct {
+		name string
+		args args
+		want srcType
+	}{
+		{"local file with schema", args{"file://tea_with_lemon.xls"}, srcDisk},
+		{"local file without schema", args{f.Name()}, srcDisk},
+		{"remote file", args{"https://shadywebsite.com/README.xlsx"}, srcWeb},
+		{"google sheets id", args{"1jw2phhb11w6vKw5nkklWtSZHOxADIsXcyRgVLyea4ak"}, srcGSheet},
+		{"unknown", args{""}, srcUnknown},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := fileType(tt.args.loc); got != tt.want {
+				t.Errorf("fileType() = %v, want %v", got, tt.want)
 			}
 		})
 	}

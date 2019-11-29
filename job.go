@@ -22,7 +22,7 @@ func NewTask(source *SourceFile, target *TargetSpreadsheet) *RefreshTask {
 // Run runs the refresh task
 func (task *RefreshTask) Run(client *http.Client) error {
 	// fetch from source and upload to google drive
-	tempSpreadsheetID, err := task.Source.FetchAndUpload(client)
+	tempSpreadsheetID, err := task.Source.Process(client)
 	if err != nil {
 		return err
 	}
