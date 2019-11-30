@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/rusq/xls2sheets"
+	"github.com/rusq/xls2sheets/authmgr"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -26,6 +27,7 @@ var (
 		"this will trigger reauthentication")
 	credentials = flag.String("auth", defaultCredentialsFile, "file with authentication data")
 	jobConfig   = flag.String("job", "", "configuration `file` with job definition")
+	consoleAuth = flag.Bool("console", false, "use text authentication prompts instead of opening browser")
 	version     = flag.Bool("version", false, "print program version and quit")
 )
 
@@ -54,20 +56,22 @@ func main() {
 		log.Fatal(err)
 	}
 
+	opts := []authmgr.Option{authmgr.OptTryWebAuth(!*consoleAuth, "")}
+
 	// prepare config from provided credentials file
-	config, err := prepareConfig(*credentials)
+	mgr, err := authmgr.NewFromGoogleCreds(*credentials, []string{sheets.SpreadsheetsScope, drive.DriveFileScope}, opts...)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if *resetAuth {
-		if err := removeToken(tokFile); err != nil {
+		if err := authmgr.RemoveToken(); err != nil {
 			log.Fatal(err)
 		}
 	}
 
 	// initialising client
-	client, err := googleClient(config)
+	client, err := mgr.Client()
 	if err != nil {
 		log.Fatal(err)
 	}
