@@ -23,8 +23,9 @@ const (
 	listenerPort = "6061" //  to avoid collision with godoc etc.
 )
 const (
-	defVendor = "rusq"
-	defApp    = "authmgr"
+	defVendor    = "rusq"
+	defApp       = "authmgr"
+	defAppPrefix = "auth-"
 )
 
 type Manager struct {
@@ -126,7 +127,7 @@ func (m *Manager) setBrowserAuth(enabled bool, listenerAddr, redirectURL string)
 		m.listenerAddr = fmt.Sprintf("%s:%s", listenerHost, listenerPort)
 	}
 	if redirectURL == "" {
-		m.config.RedirectURL = fmt.Sprintf("http://%s/callback", m.listenerAddr)
+		m.config.RedirectURL = fmt.Sprintf("http://%s%s", m.listenerAddr, callbackPath)
 	} else {
 		m.config.RedirectURL = redirectURL
 	}
@@ -137,7 +138,7 @@ func (m *Manager) setAppName() {
 		m.vendor = defVendor
 	}
 	if m.appname == "" {
-		m.appname = "auth-" + m.clientIDhash()
+		m.appname = defAppPrefix + m.clientIDhash()
 	}
 	m.configDir = configdir.New(m.vendor, m.appname)
 }
@@ -162,7 +163,7 @@ func (m *Manager) Token() (*oauth2.Token, error) {
 	if m.token != nil {
 		return m.token, nil
 	}
-	// try from disk
+	// try to load from disk
 	token, err := m.loadToken(m.path(m.tokenName()))
 	if err != nil {
 		// try to auth

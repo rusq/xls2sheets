@@ -179,12 +179,16 @@ func (m *Manager) authHandler(tokenChan chan<- *oauth2.Token) http.Handler {
 	return mux
 }
 
+type appInfo struct {
+	AppName string
+}
+
 func (m *Manager) indexHandler(w http.ResponseWriter, r *http.Request) {
 	if !m.useIndexPage {
 		http.Redirect(w, r, loginPath, http.StatusTemporaryRedirect)
 		return
 	}
-	if err := tmpl.ExecuteTemplate(w, tmIndex, nil); err != nil {
+	if err := tmpl.ExecuteTemplate(w, tmIndex, appInfo{m.appname}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -212,10 +216,10 @@ func (m *Manager) createCallbackHandler(tokenChan chan<- *oauth2.Token) http.Han
 			return
 		}
 
-		// w.WriteHeader(http.StatusOK)
-		if err := tmpl.ExecuteTemplate(w, tmCallback, struct{ AppName string }{m.appname}); err != nil {
+		if err := tmpl.ExecuteTemplate(w, tmCallback, appInfo{m.appname}); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
+
 		select {
 		case tokenChan <- token:
 		default:
