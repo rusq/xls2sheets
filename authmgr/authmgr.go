@@ -4,11 +4,14 @@ package authmgr
 
 import (
 	"context"
+	"crypto/sha1"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
 
+	"github.com/shibukawa/configdir"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -19,23 +22,29 @@ const (
 	listenerHost = "localhost"
 	listenerPort = "6061" //  to avoid collision with godoc etc.
 )
+const (
+	defVendor = "rusq"
+	defApp    = "authmgr"
+)
 
 type Manager struct {
-	token     *oauth2.Token
-	config    *oauth2.Config
-	tokenFile string
+	token  *oauth2.Token
+	config *oauth2.Config
 
 	reqFunc tokenReqFunc
+
+	tokenFile string
+	configDir configdir.ConfigDir
+
 	// options
 	redirectURL  string
 	templateDir  string
 	listenerAddr string
 	tryWebAuth   bool
-
-	tokenChan chan *oauth2.Token // for web request
+	useIndexPage bool
 
 	vendor  string
-	appName string
+	appname string
 }
 
 type tokenReqFunc func() (*oauth2.Token, error)
@@ -45,6 +54,9 @@ func (m *Manager) apply(opts ...Option) *Manager {
 	for _, opt := range opts {
 		opt(m)
 	}
+	m.setBrowserAuth(m.tryWebAuth, m.listenerAddr, m.redirectURL)
+	m.setAppName()
+
 	return m
 }
 
@@ -54,26 +66,7 @@ func New(config *oauth2.Config, opts ...Option) *Manager {
 	m := &Manager{config: config}
 	m.apply(opts...)
 
-	// populate some parameters
-	if m.listenerAddr == "" {
-		m.listenerAddr = fmt.Sprintf("%s:%s", listenerHost, listenerPort)
-	}
-
-	m.setWebAuth(m.tryWebAuth, m.redirectURL)
 	return m
-}
-
-func (m *Manager) setWebAuth(enabled bool, redirectURL string) {
-	if enabled {
-		m.reqFunc = m.browserTokenRequest
-		if redirectURL == "" {
-			m.config.RedirectURL = fmt.Sprintf("http://%s/callback", m.listenerAddr)
-		} else {
-			m.config.RedirectURL = redirectURL
-		}
-	} else {
-		m.reqFunc = m.cliTokenRequest
-	}
 }
 
 // NewFromGoogleCreds creates manager from a credentials file
@@ -119,6 +112,42 @@ func NewFromEnv(idKey, secretKey string, scopes []string, opts ...Option) (*Mana
 	return New(config, opts...), nil
 }
 
+// setBrowserAuth sets the required variables for web auth.
+func (m *Manager) setBrowserAuth(enabled bool, listenerAddr, redirectURL string) {
+	if !enabled {
+		// terminal prompt
+		m.reqFunc = m.cliTokenRequest
+		return
+	}
+	// browser token request
+	m.reqFunc = m.browserTokenRequest
+
+	if listenerAddr == "" {
+		m.listenerAddr = fmt.Sprintf("%s:%s", listenerHost, listenerPort)
+	}
+	if redirectURL == "" {
+		m.config.RedirectURL = fmt.Sprintf("http://%s/callback", m.listenerAddr)
+	} else {
+		m.config.RedirectURL = redirectURL
+	}
+}
+
+func (m *Manager) setAppName() {
+	if m.vendor == "" {
+		m.vendor = defVendor
+	}
+	if m.appname == "" {
+		m.appname = "auth-" + m.clientIDhash()
+	}
+	m.configDir = configdir.New(m.vendor, m.appname)
+}
+
+func (m *Manager) clientIDhash() string {
+	h := sha1.New()
+	io.WriteString(h, m.config.ClientID)
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
 // Client returns authenticated client.
 func (m *Manager) Client() (*http.Client, error) {
 	tok, err := m.Token()
@@ -134,7 +163,7 @@ func (m *Manager) Token() (*oauth2.Token, error) {
 		return m.token, nil
 	}
 	// try from disk
-	token, err := m.loadToken(m.path(tokFile))
+	token, err := m.loadToken(m.path(m.tokenName()))
 	if err != nil {
 		// try to auth
 		token, err = m.reqFunc()

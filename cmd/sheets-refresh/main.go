@@ -56,7 +56,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	opts := []authmgr.Option{authmgr.OptTryWebAuth(!*consoleAuth, "")}
+	opts := []authmgr.Option{
+		authmgr.OptTryWebAuth(!*consoleAuth, ""),
+		authmgr.OptAppName("rusq", "sheets-refresh"),
+		authmgr.OptUseIndexPage(true),
+	}
 
 	// prepare config from provided credentials file
 	mgr, err := authmgr.NewFromGoogleCreds(*credentials, []string{sheets.SpreadsheetsScope, drive.DriveFileScope}, opts...)
@@ -65,7 +69,7 @@ func main() {
 	}
 
 	if *resetAuth {
-		if err := authmgr.RemoveToken(); err != nil {
+		if err := mgr.RemoveToken(); err != nil {
 			log.Fatal(err)
 		}
 	}

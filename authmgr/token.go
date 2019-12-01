@@ -3,7 +3,6 @@ package authmgr
 import (
 	"context"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,28 +11,20 @@ import (
 	"path/filepath"
 	"runtime"
 
-	"github.com/shibukawa/configdir"
 	"golang.org/x/oauth2"
 )
 
+// template and webserver paths
 const (
-	vendor      = "rusq"
-	application = "sheets-refresh"
-
-	tokFile = application + "-token.bin"
-)
-
-// template filenames
-const (
-	tmLogin    = "login.html"
 	tmCallback = "callback.html"
 	tmIndex    = "index.html"
+
+	basepath     = "/"
+	loginPath    = basepath + "login"
+	callbackPath = basepath + "callback"
 )
 
-const oauthStateString = "01224277302367423221"
-
-// config directories
-var configDirs = configdir.New(vendor, application)
+var oauthStateString = randString(16)
 
 //
 // PATH functions
@@ -43,38 +34,37 @@ var configDirs = configdir.New(vendor, application)
 // tokenFile including tokenfilename.  I.e. on mac:
 //    /Users/Youruser/Library/Caches/rusq/sheets-refresh/token.json
 func (m *Manager) createPath(path string) string {
-
 	tokenPath := m.path(path)
 	if tokenPath != "" {
 		// do nothing if the path exists
 		return tokenPath
 	}
 
-	cache := configDirs.QueryCacheFolder()
+	cache := m.configDir.QueryCacheFolder()
 	if err := cache.MkdirAll(); err != nil {
 		log.Fatalf("unable to create cache directory structure")
 	}
 	return filepath.Join(cache.Path, path)
 }
 
-func (Manager) path(filename string) string {
-	configDirs.LocalPath, _ = filepath.Abs(".")
-	folder := configDirs.QueryFolderContainsFile(filename)
+func (m *Manager) path(filename string) string {
+	m.configDir.LocalPath, _ = filepath.Abs(".")
+	folder := m.configDir.QueryFolderContainsFile(filename)
 	if folder != nil {
 		return filepath.Join(folder.Path, filename)
 	}
 	// check the existance in cache folder
-	cache := configDirs.QueryCacheFolder()
-	if cache.Exists(tokFile) {
-		return filepath.Join(cache.Path, tokFile)
+	cache := m.configDir.QueryCacheFolder()
+	if cache.Exists(m.tokenName()) {
+		return filepath.Join(cache.Path, m.tokenName())
 	}
 	return ""
 }
 
 // RemoveToken finds and removes tokenFile from cache folder.  If the token
 // file is not present it does nothing.
-func RemoveToken() error {
-	tokenPath := getTokenPath(tokFile)
+func (m *Manager) RemoveToken() error {
+	tokenPath := m.path(m.tokenName())
 	if tokenPath == "" {
 		return nil
 	}
@@ -82,23 +72,6 @@ func RemoveToken() error {
 		return err
 	}
 	return nil
-}
-
-// getTokenPath returns the path for the tokenFile.  If file not found
-// returns an empty string.
-func getTokenPath(tokenFile string) string {
-	// check the file locally and in user/system configuration folders
-	configDirs.LocalPath, _ = filepath.Abs(".")
-	folder := configDirs.QueryFolderContainsFile(tokenFile)
-	if folder != nil {
-		return filepath.Join(folder.Path, tokenFile)
-	}
-	// check the existance in cache folder
-	cache := configDirs.QueryCacheFolder()
-	if cache.Exists(tokFile) {
-		return filepath.Join(cache.Path, tokFile)
-	}
-	return ""
 }
 
 //
@@ -131,7 +104,7 @@ func (m *Manager) loadToken(filename string) (*oauth2.Token, error) {
 func (m *Manager) saveToken(token *oauth2.Token) error {
 	var fullPath = m.tokenFile
 	if fullPath == "" {
-		fullPath = m.createPath(tokFile)
+		fullPath = m.createPath(m.tokenName())
 	}
 
 	log.Printf("Saving token file to: %s", fullPath)
@@ -163,50 +136,57 @@ func (m *Manager) cliTokenRequest() (*oauth2.Token, error) {
 }
 
 func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
-
 	tokenChan := make(chan *oauth2.Token)
-
 	srv := http.Server{
 		Addr:    m.listenerAddr,
 		Handler: m.authHandler(tokenChan),
 	}
 
 	errC := make(chan error, 1)
-	clean := make(chan struct{}, 1)
+	srvShutdown := make(chan struct{}, 1)
 	go func() {
 		errC <- srv.ListenAndServe()
-		close(clean)
+		close(srvShutdown)
 	}()
-	fmt.Printf("callback server listening on %s\n", m.listenerAddr)
+	log.Printf("callback server listening on %s\n", m.listenerAddr)
 
-	fmt.Println("Please follow the Instructions in your browser to authorize sheets-refresh.")
-	if err := openbrowser("http://" + m.listenerAddr); err != nil {
+	fmt.Printf("Please follow the Instructions in your browser to authorize %s\nor press ^C to cancel.", m.appname)
+	if err := openBrowser("http://" + m.listenerAddr); err != nil {
 		fmt.Printf("If your browser does not open automatically, please click here to authenticate google sheets:\n%s\n", m.listenerAddr)
 	}
 
+	var token *oauth2.Token
 	select {
-	case token := <-tokenChan:
-		srv.Close()
-		<-clean
-		return token, nil
 	case err := <-errC:
 		if err != nil {
 			return nil, err
 		}
+	case token = <-tokenChan:
 	}
-	return nil, errors.New("this should not happen")
+	// once the token is received, close the server.
+	srv.Close()
+	<-srvShutdown
+	return token, nil
 }
 
 func (m *Manager) authHandler(tokenChan chan<- *oauth2.Token) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprint(w, index)
-	})
-	mux.HandleFunc("/login", m.loginHandler)
-	mux.HandleFunc("/callback", m.tokenCallbackHandler(tokenChan))
+	mux.HandleFunc("/", m.indexHandler)
+	mux.HandleFunc(loginPath, m.loginHandler)
+	mux.HandleFunc(callbackPath, m.createCallbackHandler(tokenChan))
 
 	return mux
+}
+
+func (m *Manager) indexHandler(w http.ResponseWriter, r *http.Request) {
+	if !m.useIndexPage {
+		http.Redirect(w, r, loginPath, http.StatusTemporaryRedirect)
+		return
+	}
+	if err := tmpl.ExecuteTemplate(w, tmIndex, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (m *Manager) loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -214,7 +194,7 @@ func (m *Manager) loginHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, authURL, http.StatusTemporaryRedirect)
 }
 
-func (m *Manager) tokenCallbackHandler(tokenChan chan<- *oauth2.Token) http.HandlerFunc {
+func (m *Manager) createCallbackHandler(tokenChan chan<- *oauth2.Token) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state := r.FormValue("state")
 		if state != oauthStateString {
@@ -231,8 +211,11 @@ func (m *Manager) tokenCallbackHandler(tokenChan chan<- *oauth2.Token) http.Hand
 			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 			return
 		}
-		w.WriteHeader(200)
-		w.Write([]byte(success))
+
+		// w.WriteHeader(http.StatusOK)
+		if err := tmpl.ExecuteTemplate(w, tmCallback, struct{ AppName string }{m.appname}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
 		select {
 		case tokenChan <- token:
 		default:
@@ -241,17 +224,20 @@ func (m *Manager) tokenCallbackHandler(tokenChan chan<- *oauth2.Token) http.Hand
 	}
 }
 
-func openbrowser(url string) (err error) {
-
+func openBrowser(url string) (err error) {
 	switch runtime.GOOS {
+	default:
+		err = fmt.Errorf("unsupported OS: %s", runtime.GOOS)
+	case "darwin":
+		err = exec.Command("open", url).Start()
 	case "linux":
 		err = exec.Command("xdg-open", url).Start()
 	case "windows":
 		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-	case "darwin":
-		err = exec.Command("open", url).Start()
-	default:
-		err = fmt.Errorf("unsupported platform")
 	}
 	return
+}
+
+func (m *Manager) tokenName() string {
+	return "auth-token.bin"
 }
