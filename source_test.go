@@ -59,28 +59,6 @@ func Test_getFilename(t *testing.T) {
 	}
 }
 
-func Test_getMIME(t *testing.T) {
-	type args struct {
-		filename string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{"excel", args{"My Documents/filename.xls"}, xlsMIME},
-		{"xlsx", args{"My Documents/filename.xlsx"}, xlsxMIME},
-		{"unknown", args{"/images/facepalm.jpg"}, xlsxMIME},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := getMIME(tt.args.filename); got != tt.want {
-				t.Errorf("getMIME() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func Test_fileType(t *testing.T) {
 	f, err := ioutil.TempFile("", tempFilePrefix+"*")
 	if err != nil {
