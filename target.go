@@ -4,26 +4,39 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"mime"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 
+	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/sheets/v4"
 )
+
+const userEntered = "USER_ENTERED"
 
 // TargetSpreadsheet bears the information about the target spreadsheet and
 // address within it
 type TargetSpreadsheet struct {
-	// SpreadsheetID is the Google Spreadsheet ID
-	// i.e. 1lqbZm_TCsqcOTvOHPjG2CvZ6PpmDtBg_6qe-J1I91sk
+	// SpreadsheetID is the Google Spreadsheet ID.
+	// Example: 1lqbZm_TCsqcOTvOHPjG2CvZ6PpmDtBg_6qe-J1I91sk
 	SpreadsheetID string `yaml:"spreadsheet_id"`
+	// Location (optional) is the location of the exported file on local disk.
+	// This will save the Google Spreadsheet to local disk.
+	// Example: "/Users/Anna/Documents/rates.xlsx"
+	Location string `yaml:"location"`
 	// TargetSheet specifies the start location within the target
 	// Google Sheet for all corresponding SheetAddressRange that
 	// are defined on the source.  Example:  [ Sheet2!B4, Sheet3!A1 ]
 	SheetAddress []string `yaml:"address"`
-	// Clear specifies if the process should delete all data from the
-	// Target Sheet before updating
-	Clear  bool `yaml:"clear,omitempty"`
+	// Clear (optional) specifies if the process should delete all data from
+	// the Target Sheet before updating.
+	Clear bool `yaml:"clear,omitempty"`
+	// Create (optional) specifies if the process should create worksheet
+	// if it does not exist.
 	Create bool `yaml:"create,omitempty"`
 }
 
@@ -113,13 +126,19 @@ func (ts *TargetSpreadsheet) Update(client *http.Client, spreadsheetID string, s
 		}
 		log.Printf("    * OK: %d cells updated", resp.TotalUpdatedCells)
 	}
+	if ts.Location != "" {
+		//save the file if location is set
+		if err := ts.download(client); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
 // updateSheet updates only one sheet
 func (ts *TargetSpreadsheet) updateSheet(sheetsService *sheets.Service, data *sheets.ValueRange) (*sheets.BatchUpdateValuesResponse, error) {
-	const valueInputOption = "USER_ENTERED" // proper formatting of resulting values
+	const valueInputOption = userEntered // proper formatting of resulting values
 
 	// Reference: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/batchUpdate
 	rb := &sheets.BatchUpdateValuesRequest{
@@ -131,12 +150,51 @@ func (ts *TargetSpreadsheet) updateSheet(sheetsService *sheets.Service, data *sh
 		BatchUpdate(ts.SpreadsheetID, rb).
 		Context(context.TODO()).
 		Do()
-
 	if err != nil {
 		return nil, err
 	}
 
 	return resp, nil
+}
+
+func (ts *TargetSpreadsheet) download(client *http.Client) error {
+	if ts.Location == "" {
+		return errors.New("target location is empty")
+	}
+	if err := validPath(ts.Location); err != nil {
+		return err
+	}
+	drv, err := drive.New(client)
+	if err != nil {
+		return err
+	}
+	resp, err := drv.Files.Export(ts.SpreadsheetID, mime.TypeByExtension(filepath.Ext(ts.Location))).Download()
+	if err != nil {
+		return err
+	}
+	f, err := os.Create(ts.Location)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err := io.Copy(f, resp.Body); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validPath(filename string) error {
+	fi, err := os.Stat(filename)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if fi != nil && fi.IsDir() {
+		return fmt.Errorf("%s is a directory, will not overwrite", filename)
+	}
+	if os.IsExist(err) {
+		os.Remove(filename)
+	}
+	return nil
 }
 
 // validate checks if all defined in the configuration sheets exist and
