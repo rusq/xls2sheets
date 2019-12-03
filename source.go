@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,18 +20,10 @@ import (
 )
 
 const (
-	// MIME types
-	// Google sheets
-	gsheetMIME = "application/vnd.google-apps.spreadsheet"
-	// Microsoft Excel .xlsx
-	xlsxMIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-	// Microsoft Excel .xls
-	xlsMIME = "application/vnd.ms-excel"
-
 	// tempFilePrefix used for temporary file uploads
 	tempFilePrefix = "xls2sheets$"
 
-	minFileSz = 512 // can't imagine excel file less than this.
+	minFileSz = 512 // can't imagine excel file smaller than this.
 )
 
 type srcType string
@@ -75,11 +68,6 @@ type sourcer interface {
 type disk struct{}
 type web struct{}
 type gsheet struct{}
-
-var extensionMIMEmap = map[string]string{
-	".xlsx": xlsxMIME,
-	".xls":  xlsMIME,
-}
 
 var gsheetRe = regexp.MustCompile(`[-\w]{25,}$`)
 
@@ -187,7 +175,7 @@ func (sf *SourceFile) upload(client *http.Client, sourceData io.Reader) (string,
 		Create(&file).
 		Media(
 			sourceData, // source file data
-			googleapi.ContentType(getMIME(sf.FileLocation)), // source file MIME type
+			googleapi.ContentType(mime.TypeByExtension(filepath.Ext(sf.FileLocation))), // source file MIME type
 		).
 		Do()
 	if err != nil {
@@ -202,16 +190,6 @@ func (sf *SourceFile) upload(client *http.Client, sourceData io.Reader) (string,
 func generateName(prefix string, extension string) string {
 	epoch := time.Now().Unix()
 	return fmt.Sprintf("%s%d%s", prefix, epoch, extension)
-}
-
-// getMIME returns the MIME type for the given filename.
-func getMIME(filename string) string {
-	mime, ok := extensionMIMEmap[strings.ToLower(filepath.Ext(filename))]
-	if !ok {
-		// BUG: defaults to xlsx mime, maybe will need to reconsider
-		return xlsxMIME
-	}
-	return mime
 }
 
 func (web) convert(client *http.Client, loc string) (string, error) {
@@ -268,8 +246,8 @@ func upload(client *http.Client, sourceData io.Reader, srcName string) (string, 
 	hFile, err := srv.Files.
 		Create(&file).
 		Media(
-			sourceData,                              // source file data
-			googleapi.ContentType(getMIME(srcName)), // source file MIME type
+			sourceData, // source file data
+			googleapi.ContentType(mime.TypeByExtension(filepath.Ext(srcName))), // source file MIME type
 		).
 		Do()
 	if err != nil {

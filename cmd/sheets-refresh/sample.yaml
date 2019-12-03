@@ -15,6 +15,7 @@
       - Data!A1:U
   target:
     spreadsheet_id: 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
+    location: ./sample.xlsx
     address:
       - Monthly Rates
     create: true
