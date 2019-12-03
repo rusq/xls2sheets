@@ -91,8 +91,8 @@ func prepareConfig(credentialsFile string) (*oauth2.Config, error) {
 	// scope reference: https://developers.google.com/identity/protocols/googlescopes
 	config, err := google.ConfigFromJSON(
 		b,
-		sheets.SpreadsheetsScope,
-		drive.DriveFileScope,
+		sheets.SpreadsheetsScope, // we need to be able to edit existing files.
+		drive.DriveScope,         // this type of access is required to export sheets to files
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse client secret file to config: %v", err)

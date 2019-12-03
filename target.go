@@ -128,9 +128,12 @@ func (ts *TargetSpreadsheet) Update(client *http.Client, spreadsheetID string, s
 	}
 	if ts.Location != "" {
 		//save the file if location is set
+		log.Printf("  * trying to export to %s", ts.Location)
 		if err := ts.download(client); err != nil {
+			log.Print("    * export FAILED")
 			return err
 		}
+		log.Print("    * export OK")
 	}
 
 	return nil
