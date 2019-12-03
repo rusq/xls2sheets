@@ -29,7 +29,7 @@ func TestManager_clientIDhash(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		{"test", fields{config: &oauth2.Config{ClientID: "test"}}, "auth-a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"},
+		{"test", fields{config: &oauth2.Config{ClientID: "test"}}, "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

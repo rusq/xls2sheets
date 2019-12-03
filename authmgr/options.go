@@ -6,6 +6,7 @@ type Option func(*Manager)
 // OptTemplateDir sets the template directory for templates.
 func OptTemplateDir(dir string) Option {
 	return func(m *Manager) {
+		// TODO: actually use this info.
 		m.templateDir = dir
 	}
 }

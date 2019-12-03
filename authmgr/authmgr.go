@@ -5,6 +5,7 @@ package authmgr
 import (
 	"context"
 	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -146,7 +147,7 @@ func (m *Manager) setAppName() {
 func (m *Manager) clientIDhash() string {
 	h := sha1.New()
 	io.WriteString(h, m.config.ClientID)
-	return fmt.Sprintf("%x", h.Sum(nil))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // Client returns authenticated client.
