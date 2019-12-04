@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	maxCredFileSz = 1048576 // 1MB for credentials file is more than enough
+	maxCredFileSz = 131072 // 128KB for credentials file is more than enough
 
 	listenerHost = "localhost"
 	listenerPort = "6061" //  to avoid collision with godoc etc.
@@ -29,6 +29,7 @@ const (
 	defAppPrefix = "auth-"
 )
 
+// Manager is authorization manager
 type Manager struct {
 	token  *oauth2.Token
 	config *oauth2.Config
@@ -52,23 +53,37 @@ type Manager struct {
 type tokenReqFunc func() (*oauth2.Token, error)
 
 // apply applies specified options
-func (m *Manager) apply(opts ...Option) *Manager {
+func (m *Manager) apply(opts ...Option) (*Manager, error) {
 	for _, opt := range opts {
-		opt(m)
+		if err := opt(m); err != nil {
+			return nil, err
+		}
 	}
 	m.setBrowserAuth(m.tryWebAuth, m.listenerAddr, m.redirectURL)
 	m.setAppName()
 
-	return m
+	return m, nil
 }
 
 // New creates a new instance of Manager from oauth.Config
-func New(config *oauth2.Config, opts ...Option) *Manager {
+func New(config *oauth2.Config, opts ...Option) (*Manager, error) {
 
 	m := &Manager{config: config}
-	m.apply(opts...)
+	if _, err := m.apply(opts...); err != nil {
+		return nil, err
+	}
 
-	return m
+	return m, nil
+}
+
+func (m *Manager) setAppName() {
+	if m.vendor == "" {
+		m.vendor = defVendor
+	}
+	if m.appname == "" {
+		m.appname = defAppPrefix + m.clientIDhash()
+	}
+	m.configDir = configdir.New(m.vendor, m.appname)
 }
 
 // NewFromGoogleCreds creates manager from a credentials file
@@ -95,7 +110,7 @@ func NewFromGoogleCreds(filename string, scopes []string, opts ...Option) (*Mana
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse client secret file to config: %s", err)
 	}
-	return New(config, opts...), nil
+	return New(config, opts...)
 }
 
 // NewFromEnv creates manager from environment variables.
@@ -111,7 +126,7 @@ func NewFromEnv(idKey, secretKey string, scopes []string, opts ...Option) (*Mana
 		Scopes:       scopes,
 		Endpoint:     google.Endpoint,
 	}
-	return New(config, opts...), nil
+	return New(config, opts...)
 }
 
 // setBrowserAuth sets the required variables for web auth.
@@ -132,16 +147,6 @@ func (m *Manager) setBrowserAuth(enabled bool, listenerAddr, redirectURL string)
 	} else {
 		m.config.RedirectURL = redirectURL
 	}
-}
-
-func (m *Manager) setAppName() {
-	if m.vendor == "" {
-		m.vendor = defVendor
-	}
-	if m.appname == "" {
-		m.appname = defAppPrefix + m.clientIDhash()
-	}
-	m.configDir = configdir.New(m.vendor, m.appname)
 }
 
 func (m *Manager) clientIDhash() string {
