@@ -1,4 +1,7 @@
+
 # Excel To Google Sheets Importer #
+
+[![Build Status](https://travis-ci.com/rusq/xls2sheets.svg?branch=master)](https://travis-ci.com/rusq/xls2sheets)
 
 Purpose: Import Microsoft Excel or Google Spreadsheet files from arbitrary
 location to Google Sheets workbook.
