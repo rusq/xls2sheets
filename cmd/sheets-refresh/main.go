@@ -63,7 +63,7 @@ func main() {
 	}
 
 	// prepare config from provided credentials file
-	mgr, err := authmgr.NewFromGoogleCreds(*credentials, []string{sheets.SpreadsheetsScope, drive.DriveFileScope}, opts...)
+	mgr, err := authmgr.NewFromGoogleCreds(*credentials, []string{sheets.SpreadsheetsScope, drive.DriveScope}, opts...)
 	if err != nil {
 		log.Fatal(err)
 	}

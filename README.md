@@ -30,6 +30,7 @@ Supported Targets:
 * Copy multiple worsheets (or ranges) to multiple target worksheets, i.e.:
   * Range "Rates!A1:H12" in source file to "Rates2019" worksheet in target;
   * Range "Rates!A13:H24" in source file to "Rates2020 worksheet in target;
+* Exporting files to disk in a number of formats.
 
 ### Quick install ###
 If you have **Go** installed, run the following:
@@ -124,34 +125,32 @@ In the example two source files are combined into one Google Sheets Document:
 ### Sample Run ###
 ```
 $ ./sheets-refresh -job rbrates.yaml
-
-Go to the following link in your browser:
-https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=XXXXXXXxxxxxxXXXXX.apps.googleusercontent.com&redirect_uri=urn%3Aietf%3Awg%3Aoauth%3A2.0%3Aoob&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fspreadsheets+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fdrive.file&state=state-token
-
-Enter authorization code: 4/XxXxXxXxXxXxXxXx-ABCDEFG-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-Saving credential file to: /Users/you/Library/Caches/rusq/sheets-refresh/sheet-refresh-token.json
-2019/12/09 19:53:59 starting task: "01_monthly_rates"
-2019/12/09 19:53:59 + type detected as: remote file
-2019/12/09 19:53:59 + trying to open: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-monthly.xlsx
-2019/12/09 19:54:36 updating data in target spreadsheet 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
-2019/12/09 19:54:36   * retrieving information about the spreadsheet
-2019/12/09 19:54:37   * validating target configuration
-2019/12/09 19:54:37   * copy range "Data!A1:U" to "Monthly Rates"
-2019/12/09 19:54:37     * clearing target sheet
-2019/12/09 19:54:38     * OK: 5356 cells updated
-2019/12/09 19:54:38   * trying to export to ./sample.ods
-2019/12/09 19:54:43     * export OK
-2019/12/09 19:54:44 task "01_monthly_rates": success
-2019/12/09 19:54:44 starting task: "02_daily_rates"
-2019/12/09 19:54:44 + type detected as: remote file
-2019/12/09 19:54:44 + trying to open: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-daily.xlsx
-2019/12/09 19:55:27 updating data in target spreadsheet 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
-2019/12/09 19:55:27   * retrieving information about the spreadsheet
-2019/12/09 19:55:27   * validating target configuration
-2019/12/09 19:55:27   * copy range "Data!A1:T" to "Daily Rates"
-2019/12/09 19:55:28     * clearing target sheet
-2019/12/09 19:55:29     * OK: 9841 cells updated
-2019/12/09 19:55:30 task "02_daily_rates": success
+2019/12/09 20:07:56 callback server listening on localhost:6061
+Please follow the Instructions in your browser to authorize sheets-refresh
+or press [Ctrl]+[C] to cancel...
+2019/12/09 20:08:07 Saving token file to: /Users/rustamgilyazov/Library/Caches/rusq/sheets-refresh/auth-token.bin
+2019/12/09 20:08:07 starting task: "01_monthly_rates"
+2019/12/09 20:08:07 + type detected as: remote file
+2019/12/09 20:08:07 + trying to open: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-monthly.xlsx
+2019/12/09 20:09:16 updating data in target spreadsheet 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
+2019/12/09 20:09:16   * retrieving information about the spreadsheet
+2019/12/09 20:09:17   * validating target configuration
+2019/12/09 20:09:17   * copy range "Data!A1:U" to "Monthly Rates"
+2019/12/09 20:09:18     * clearing target sheet
+2019/12/09 20:09:20     * OK: 5356 cells updated
+2019/12/09 20:09:20   * trying to export to ./sample.ods
+2019/12/09 20:09:27     * export OK
+2019/12/09 20:09:28 task "01_monthly_rates": success
+2019/12/09 20:09:28 starting task: "02_daily_rates"
+2019/12/09 20:09:28 + type detected as: remote file
+2019/12/09 20:09:28 + trying to open: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-daily.xlsx
+2019/12/09 20:09:34 updating data in target spreadsheet 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
+2019/12/09 20:09:34   * retrieving information about the spreadsheet
+2019/12/09 20:09:34   * validating target configuration
+2019/12/09 20:09:34   * copy range "Data!A1:T" to "Daily Rates"
+2019/12/09 20:09:35     * clearing target sheet
+2019/12/09 20:09:37     * OK: 9841 cells updated
+2019/12/09 20:09:38 task "02_daily_rates": success
 ```
 
 [1]: https://github.com/rusq/xls2sheets/releases

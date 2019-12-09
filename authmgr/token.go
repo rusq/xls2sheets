@@ -151,7 +151,7 @@ func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
 	log.Printf("callback server listening on %s\n", m.listenerAddr)
 
 	fmt.Printf("Please follow the Instructions in your browser to authorize %s\n"+
-		"or press ^C to cancel.", m.appname)
+		"or press [Ctrl]+[C] to cancel...\n", m.appname)
 	if err := openBrowser("http://" + m.listenerAddr); err != nil {
 		fmt.Printf("If your browser does not open automatically, please open"+
 			" this link to authenticate google sheets:\n%s\n", m.listenerAddr)
