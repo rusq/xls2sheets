@@ -110,7 +110,7 @@ func (m *Manager) saveToken(token *oauth2.Token) error {
 	log.Printf("Saving token file to: %s", fullPath)
 	f, err := os.OpenFile(fullPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		return fmt.Errorf("Unable to cache oauth token: %v", err)
+		return fmt.Errorf("unable to cache oauth token: %v", err)
 	}
 	defer f.Close()
 	m.tokenFile = fullPath
@@ -124,12 +124,12 @@ func (m *Manager) cliTokenRequest() (*oauth2.Token, error) {
 
 	var authCode string
 	if _, err := fmt.Scan(&authCode); err != nil {
-		return nil, fmt.Errorf("Unable to read authorization code: %v", err)
+		return nil, fmt.Errorf("unable to read authorization code: %v", err)
 	}
 
 	tok, err := m.Config().Exchange(context.TODO(), authCode)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to retrieve token from web: %v", err)
+		return nil, fmt.Errorf("unable to retrieve token from web: %v", err)
 	}
 
 	return tok, nil
@@ -143,16 +143,18 @@ func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
 	}
 
 	errC := make(chan error, 1)
-	srvShutdown := make(chan struct{}, 1)
+	isShutdown := make(chan struct{}, 1)
 	go func() {
 		errC <- srv.ListenAndServe()
-		close(srvShutdown)
+		close(isShutdown)
 	}()
 	log.Printf("callback server listening on %s\n", m.listenerAddr)
 
-	fmt.Printf("Please follow the Instructions in your browser to authorize %s\nor press ^C to cancel.", m.appname)
+	fmt.Printf("Please follow the Instructions in your browser to authorize %s\n"+
+		"or press ^C to cancel.", m.appname)
 	if err := openBrowser("http://" + m.listenerAddr); err != nil {
-		fmt.Printf("If your browser does not open automatically, please click here to authenticate google sheets:\n%s\n", m.listenerAddr)
+		fmt.Printf("If your browser does not open automatically, please open"+
+			" this link to authenticate google sheets:\n%s\n", m.listenerAddr)
 	}
 
 	var token *oauth2.Token
@@ -163,16 +165,17 @@ func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
 		}
 	case token = <-tokenChan:
 	}
-	// once the token is received, close the server.
+	// once the token is received, shutdown the server.
 	srv.Close()
-	<-srvShutdown
+	<-isShutdown
 	return token, nil
 }
 
+// authHandler registers authentication handling routes.
 func (m *Manager) authHandler(tokenChan chan<- *oauth2.Token) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", m.indexHandler)
+	mux.HandleFunc("/", m.rootHandler)
 	mux.HandleFunc(loginPath, m.loginHandler)
 	mux.HandleFunc(callbackPath, m.createCallbackHandler(tokenChan))
 
@@ -183,7 +186,7 @@ type appInfo struct {
 	AppName string
 }
 
-func (m *Manager) indexHandler(w http.ResponseWriter, r *http.Request) {
+func (m *Manager) rootHandler(w http.ResponseWriter, r *http.Request) {
 	if !m.useIndexPage {
 		http.Redirect(w, r, loginPath, http.StatusTemporaryRedirect)
 		return
@@ -216,6 +219,7 @@ func (m *Manager) createCallbackHandler(tokenChan chan<- *oauth2.Token) http.Han
 			return
 		}
 
+		// success page, rendering just before shutting down the whole thing.
 		if err := tmpl.ExecuteTemplate(w, tmCallback, appInfo{m.appname}); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
@@ -228,6 +232,7 @@ func (m *Manager) createCallbackHandler(tokenChan chan<- *oauth2.Token) http.Han
 	}
 }
 
+// openBrowser attempts to open browser.
 func openBrowser(url string) (err error) {
 	switch runtime.GOOS {
 	default:
