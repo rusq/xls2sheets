@@ -14,7 +14,9 @@ Supported Sources:
 
 Supported Targets:
 
-  * Google Sheets spreadsheet.
+  * Google Sheets spreadsheet;
+  * Save file to the local disk (all supported by Google Sheets formats, i.e.
+    XLSX, XLS, ODT, PDF, TXT, CSV, HTML).
 
 ## Features ##
 
@@ -66,6 +68,8 @@ Otherwise, you can download the executable for your Operating System from
   * In **Target** - a *Google SpreadsheetID* and one or more *Address* to copy
     to, i.e. "Backup!A1".  Optionally, one can specify whether to *Create* the
     worksheet or *Clear* the destination worksheet before copying.
+    Additionally, one can specify a filename for export in *Location*
+    parameter (see example below).
   * It is important to have exactly same number of **Source Address Range**
     entries and **Target Addresses**.  I.e. if you're about to copy
     two sheets from an Excel file, make sure that you specify two target
@@ -77,8 +81,8 @@ The Example file below contains all possible configuration entries.
 
 In the example two source files are combined into one Google Sheets Document:
 
-* The range "Data!A1:U" of file *hb1-monthly.xlsx* is imported into "Monthly Rates"
-  worksheet of Google Sheets Document
+* The range "Data!A1:U" of file *hb1-monthly.xlsx* is imported into "Monthly
+  Rates" worksheet of Google Sheets Document
 
 ```yaml
 # 
@@ -109,6 +113,7 @@ In the example two source files are combined into one Google Sheets Document:
       - Data!A1:T
   target:
     spreadsheet_id: 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
+    location: ./sample.ods
     address:
       - Daily Rates
     create: true
@@ -125,19 +130,28 @@ https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=XXXXXXXx
 
 Enter authorization code: 4/XxXxXxXxXxXxXxXx-ABCDEFG-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 Saving credential file to: /Users/you/Library/Caches/rusq/sheets-refresh/sheet-refresh-token.json
-2019/05/19 18:37:19 Starting task: "01_monthly_rates"
-2019/05/19 18:37:28 updating data in target spreadsheet 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
-2019/05/19 18:37:28   * retrieving information about the spreadsheet
-2019/05/19 18:37:29   * validating target configuration
-2019/05/19 18:37:29   * copy range Data!A1:U to Monthly Rates
-2019/05/19 18:37:30     * clearing target sheet
-2019/05/19 18:37:31     * OK: 5209 cells updated
-2019/05/19 18:37:32 Starting task: "02_daily_rates"
-2019/05/19 18:37:37 updating data in target spreadsheet 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
-2019/05/19 18:37:37   * retrieving information about the spreadsheet
-2019/05/19 18:37:38   * validating target configuration
-2019/05/19 18:37:38   * copy range Data!A1:T to Daily Rates
-2019/05/19 18:37:40     * OK: 7061 cells updated
+2019/12/09 19:53:59 starting task: "01_monthly_rates"
+2019/12/09 19:53:59 + type detected as: remote file
+2019/12/09 19:53:59 + trying to open: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-monthly.xlsx
+2019/12/09 19:54:36 updating data in target spreadsheet 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
+2019/12/09 19:54:36   * retrieving information about the spreadsheet
+2019/12/09 19:54:37   * validating target configuration
+2019/12/09 19:54:37   * copy range "Data!A1:U" to "Monthly Rates"
+2019/12/09 19:54:37     * clearing target sheet
+2019/12/09 19:54:38     * OK: 5356 cells updated
+2019/12/09 19:54:38   * trying to export to ./sample.ods
+2019/12/09 19:54:43     * export OK
+2019/12/09 19:54:44 task "01_monthly_rates": success
+2019/12/09 19:54:44 starting task: "02_daily_rates"
+2019/12/09 19:54:44 + type detected as: remote file
+2019/12/09 19:54:44 + trying to open: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-daily.xlsx
+2019/12/09 19:55:27 updating data in target spreadsheet 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
+2019/12/09 19:55:27   * retrieving information about the spreadsheet
+2019/12/09 19:55:27   * validating target configuration
+2019/12/09 19:55:27   * copy range "Data!A1:T" to "Daily Rates"
+2019/12/09 19:55:28     * clearing target sheet
+2019/12/09 19:55:29     * OK: 9841 cells updated
+2019/12/09 19:55:30 task "02_daily_rates": success
 ```
 
 [1]: https://github.com/rusq/xls2sheets/releases
