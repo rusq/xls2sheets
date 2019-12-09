@@ -1,7 +1,6 @@
 package xls2sheets
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"sort"
@@ -46,7 +45,8 @@ func (job *RefreshJob) Execute(client *http.Client) error {
 	for _, taskName := range job.sortedNames {
 		log.Printf("starting task: %q", taskName)
 		if err := job.tasks[taskName].Run(client); err != nil {
-			return fmt.Errorf("task %q: error: %s", taskName, err)
+			log.Printf("task %q: error: %s", taskName, err)
+			continue
 		}
 		log.Printf("task %q: success", taskName)
 	}

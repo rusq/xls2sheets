@@ -24,3 +24,5 @@ vendor
 *.xls
 *.xlsx
 *.yaml
+*.ods
+*.pdf
