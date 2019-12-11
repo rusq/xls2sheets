@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"runtime"
 
 	"github.com/shibukawa/configdir"
 	"golang.org/x/oauth2"
@@ -95,11 +96,15 @@ func NewFromGoogleCreds(filename string, scopes []string, opts ...Option) (*Mana
 	if fi.Size() == 0 || fi.Size() > maxCredFileSz { //1 MB
 		return nil, fmt.Errorf("suspicious file size: %d", fi.Size())
 	}
-	// check if the permissions on the file are set correctly
-	permissions := fi.Mode().Perm()
-	if !(permissions == 0600 || permissions == 0400) {
-		return nil, fmt.Errorf("credentials file is to permissive (%o), "+
-			"to fix - run:\n\tchmod 600 %s", permissions, filename)
+
+	// check permissions if not on windows.
+	if runtime.GOOS != "windows" {
+		// check if the permissions on the file are set correctly
+		permissions := fi.Mode().Perm()
+		if !(permissions == 0600 || permissions == 0400) {
+			return nil, fmt.Errorf("credentials file is to permissive (%o), "+
+				"to fix - run:\n\tchmod 600 %s", permissions, filename)
+		}
 	}
 
 	b, err := ioutil.ReadFile(filename)

@@ -12,7 +12,7 @@
   source:
     location: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-monthly.xlsx
     address_range:
-      - Data!A1:U
+      - Data!A3:U
   target:
     spreadsheet_id: 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
     location: ./sample.ods
@@ -24,7 +24,7 @@
   source:
     location: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-daily.xlsx
     address_range:
-      - Data!A1:T
+      - Data!A3:T
   target:
     spreadsheet_id: 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
     address:
