@@ -175,7 +175,7 @@ func (m *Manager) Token() (*oauth2.Token, error) {
 		return m.token, nil
 	}
 	// try to load from disk
-	token, err := m.loadToken(m.path(m.tokenName()))
+	token, err := m.loadToken(m.tokenName())
 	if err != nil {
 		// try to auth
 		token, err = m.reqFunc()
