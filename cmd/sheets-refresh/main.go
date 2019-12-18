@@ -17,17 +17,22 @@ import (
 
 var build = ""
 
-var defaultCredentialsFile = os.ExpandEnv(filepath.Join("${HOME}", ".refresh-credentials.json"))
-
 // command line parameters
 var (
 	resetAuth = flag.Bool("reset", false, "deletes the locally stored token before execution\n"+
 		"this will trigger reauthentication")
-	credentials = flag.String("auth", defaultCredentialsFile, "file with authentication data")
 	jobConfig   = flag.String("job", "", "configuration `file` with job definition")
 	consoleAuth = flag.Bool("console", false, "use text authentication prompts instead of opening browser")
 	version     = flag.Bool("version", false, "print program version and quit")
+
+	credentials *string
 )
+
+func init() {
+	home, _ := os.UserHomeDir()
+	defaultCredentialsFile := filepath.Join(home, ".refresh-credentials.json")
+	credentials = flag.String("auth", defaultCredentialsFile, "file with authentication data")
+}
 
 func main() {
 	flag.Parse()
@@ -35,6 +40,12 @@ func main() {
 	if *version {
 		fmt.Println(build)
 		os.Exit(0)
+	}
+
+	_, err := os.Stat(*credentials)
+	if err != nil {
+		fmt.Printf(credentialsHowTo, *credentials)
+		os.Exit(1)
 	}
 
 	// check parameters
