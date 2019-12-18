@@ -61,9 +61,9 @@ func (m *Manager) path(filename string) string {
 	return ""
 }
 
-// RemoveToken finds and removes tokenFile from cache folder.  If the token
+// removeToken finds and removes tokenFile from cache folder.  If the token
 // file is not present it does nothing.
-func (m *Manager) RemoveToken() error {
+func (m *Manager) removeToken() error {
 	tokenPath := m.path(m.tokenName())
 	if tokenPath == "" {
 		return nil

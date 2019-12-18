@@ -81,6 +81,6 @@ func OptUseIndexPage(b bool) Option {
 // OptResetAuth resets the token and forces reauthentication.
 func OptResetAuth() Option {
 	return func(m *Manager) error {
-		return m.RemoveToken()
+		return m.removeToken()
 	}
 }
