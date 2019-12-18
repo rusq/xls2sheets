@@ -59,7 +59,7 @@ func OptTryWebAuth(b bool, redirectURL string) Option {
 	}
 }
 
-// OptAppName sets the application name
+// OptAppName sets the application name.
 func OptAppName(vendor, name string) Option {
 	return func(m *Manager) error {
 		m.vendor = vendor
@@ -69,9 +69,18 @@ func OptAppName(vendor, name string) Option {
 	}
 }
 
+// OptUseIndexPage sets the optional index page display prior to redirecting
+// to Oauth provider scopes permission page.
 func OptUseIndexPage(b bool) Option {
 	return func(m *Manager) error {
 		m.useIndexPage = b
 		return nil
+	}
+}
+
+// OptResetAuth resets the token and forces reauthentication.
+func OptResetAuth() Option {
+	return func(m *Manager) error {
+		return m.RemoveToken()
 	}
 }
