@@ -70,17 +70,14 @@ func main() {
 		authmgr.OptAppName("rusq", "sheets-refresh"),
 		authmgr.OptUseIndexPage(true),
 	}
+	if *resetAuth {
+		opts = append(opts, authmgr.OptResetAuth())
+	}
 
 	// prepare config from provided credentials file
 	mgr, err := authmgr.NewFromGoogleCreds(*credentials, []string{sheets.SpreadsheetsScope, drive.DriveScope}, opts...)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	if *resetAuth {
-		if err := mgr.RemoveToken(); err != nil {
-			log.Fatal(err)
-		}
 	}
 
 	// initialising client
