@@ -8,18 +8,18 @@ import (
 	"github.com/go-yaml/yaml"
 )
 
-// RefreshJob is a set of RefreshTasks
-type RefreshJob struct {
-	tasks refreshTasks
+// Job is a set of RefreshTasks
+type Job struct {
+	Tasks Tasks
 
 	sortedNames []string
 }
 
-type refreshTasks map[string]*RefreshTask
+type Tasks map[string]*Task
 
 // FromConfig instantiates Job from config
-func FromConfig(config []byte) (*RefreshJob, error) {
-	tasks := make(refreshTasks)
+func FromConfig(config []byte) (*Job, error) {
+	tasks := make(Tasks)
 	if err := yaml.Unmarshal(config, &tasks); err != nil {
 		return nil, err
 	}
@@ -31,8 +31,8 @@ func FromConfig(config []byte) (*RefreshJob, error) {
 	}
 	sort.Strings(names)
 
-	job := &RefreshJob{
-		tasks:       tasks,
+	job := &Job{
+		Tasks:       tasks,
 		sortedNames: names,
 	}
 
@@ -41,10 +41,10 @@ func FromConfig(config []byte) (*RefreshJob, error) {
 
 // Execute executes the job. Tasks are run in alphabetical order.
 // if any error occurs - the job is interrupted.
-func (job *RefreshJob) Execute(client *http.Client) error {
+func (job *Job) Execute(client *http.Client) error {
 	for _, taskName := range job.sortedNames {
 		log.Printf("starting task: %q", taskName)
-		if err := job.tasks[taskName].Run(client); err != nil {
+		if err := job.Tasks[taskName].Run(client); err != nil {
 			log.Printf("task %q: error: %s", taskName, err)
 			continue
 		}

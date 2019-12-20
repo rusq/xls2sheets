@@ -4,23 +4,23 @@ import (
 	"net/http"
 )
 
-// RefreshTask contains all information needed to refresh the Google
+// Task contains all information needed to refresh the Google
 // Spreadsheet from an external file
-type RefreshTask struct {
+type Task struct {
 	Source *SourceFile        `yaml:"source"` // Source file info (defined below)
 	Target *TargetSpreadsheet `yaml:"target"` // Target sheet info (defined below)
 }
 
 // NewTask creates the task
-func NewTask(source *SourceFile, target *TargetSpreadsheet) *RefreshTask {
-	return &RefreshTask{
+func NewTask(source *SourceFile, target *TargetSpreadsheet) *Task {
+	return &Task{
 		Source: source,
 		Target: target,
 	}
 }
 
 // Run runs the refresh task
-func (task *RefreshTask) Run(client *http.Client) error {
+func (task *Task) Run(client *http.Client) error {
 	// fetch from source and upload to google drive
 	tempSpreadsheetID, err := task.Source.Process(client)
 	if err != nil {

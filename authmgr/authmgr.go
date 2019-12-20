@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"runtime"
 
 	"github.com/shibukawa/configdir"
@@ -193,4 +194,19 @@ func (m *Manager) Token() (*oauth2.Token, error) {
 // Config returns oauth2 config.
 func (m *Manager) Config() *oauth2.Config {
 	return m.config
+}
+
+// OpenBrowser attempts to open browser.
+func OpenBrowser(url string) (err error) {
+	switch runtime.GOOS {
+	default:
+		err = fmt.Errorf("unsupported OS: %s", runtime.GOOS)
+	case "darwin":
+		err = exec.Command("open", url).Start()
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	}
+	return
 }
