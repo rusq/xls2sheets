@@ -7,9 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 
 	"golang.org/x/oauth2"
 )
@@ -152,7 +150,7 @@ func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
 
 	fmt.Printf("Please follow the Instructions in your browser to authorize %s\n"+
 		"or press [Ctrl]+[C] to cancel...\n", m.appname)
-	if err := openBrowser("http://" + m.listenerAddr); err != nil {
+	if err := OpenBrowser("http://" + m.listenerAddr); err != nil {
 		fmt.Printf("If your browser does not open automatically, please open"+
 			" this link to authenticate google sheets:\n%s\n", m.listenerAddr)
 	}
@@ -232,21 +230,7 @@ func (m *Manager) createCallbackHandler(tokenChan chan<- *oauth2.Token) http.Han
 	}
 }
 
-// openBrowser attempts to open browser.
-func openBrowser(url string) (err error) {
-	switch runtime.GOOS {
-	default:
-		err = fmt.Errorf("unsupported OS: %s", runtime.GOOS)
-	case "darwin":
-		err = exec.Command("open", url).Start()
-	case "linux":
-		err = exec.Command("xdg-open", url).Start()
-	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
-	}
-	return
-}
-
+// tokenName returns the token name.
 func (m *Manager) tokenName() string {
 	return "auth-token.bin"
 }
