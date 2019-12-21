@@ -1,37 +1,52 @@
 package xls2sheets
 
 import (
+	"log"
 	"net/http"
+	"sort"
+
+	"github.com/go-yaml/yaml"
 )
 
-// Task contains all information needed to refresh the Google
-// Spreadsheet from an external file
-type Task struct {
-	Source *SourceFile        `yaml:"source"` // Source file info (defined below)
-	Target *TargetSpreadsheet `yaml:"target"` // Target sheet info (defined below)
+// Job is a set of Tasks
+type Job struct {
+	Tasks Tasks
+
+	sortedNames []string
 }
 
-// NewTask creates the task
-func NewTask(source *SourceFile, target *TargetSpreadsheet) *Task {
-	return &Task{
-		Source: source,
-		Target: target,
+// FromConfig instantiates Job from config
+func FromConfig(config []byte) (*Job, error) {
+	tasks := make(Tasks)
+	if err := yaml.Unmarshal(config, &tasks); err != nil {
+		return nil, err
 	}
+
+	// Sorting job names
+	names := make([]string, 0, len(tasks))
+	for k := range tasks {
+		names = append(names, k)
+	}
+	sort.Strings(names)
+	job := &Job{
+		Tasks:       tasks,
+		sortedNames: names,
+	}
+
+	return job, nil
 }
 
-// Run runs the refresh task
-func (task *Task) Run(client *http.Client) error {
-	// fetch from source and upload to google drive
-	tempSpreadsheetID, err := task.Source.Process(client)
-	if err != nil {
-		return err
+// Execute executes the job. Tasks are run in alphabetical order.
+// if any error occurs - the job is interrupted.
+func (job *Job) Execute(client *http.Client) error {
+	for _, taskName := range job.sortedNames {
+		log.Printf("starting task: %q", taskName)
+		if err := job.Tasks[taskName].Run(client); err != nil {
+			log.Printf("task %q: error: %s", taskName, err)
+			continue
+		}
+		log.Printf("task %q: success", taskName)
 	}
-	// this ensures that the temporary file is deleted at the end of
-	// conversion
-	defer task.Source.Delete(client)
-	// copy data from temporary file to target file
-	if err := task.Target.Update(client, tempSpreadsheetID, task.Source.SheetAddressRange); err != nil {
-		return err
-	}
+
 	return nil
 }
