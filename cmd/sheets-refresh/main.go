@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/rusq/xls2sheets"
-	"github.com/rusq/xls2sheets/authmgr"
+	"github.com/rusq/xls2sheets/internal/authmgr"
 
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/sheets/v4"
