@@ -25,7 +25,7 @@ var (
 	consoleAuth = flag.Bool("console", false, "use text authentication prompts instead of opening browser")
 	version     = flag.Bool("version", false, "print program version and quit")
 
-	credentials *string
+	credentials *string // -auth (see init function)
 )
 
 func init() {
@@ -48,9 +48,22 @@ func main() {
 		os.Exit(1)
 	}
 
+	opts := []authmgr.Option{
+		authmgr.OptTryWebAuth(!*consoleAuth, "/", ""),
+		authmgr.OptAppName("rusq", "sheets-refresh"),
+		authmgr.OptUseIndexPage(true),
+	}
+	if *resetAuth {
+		opts = append(opts, authmgr.OptResetAuth())
+	}
+
 	// check parameters
 	if *jobConfig == "" {
+		if !*resetAuth {
+			os.Exit(0) // exiting without error if we were asked to just reset
+		}
 		log.Fatal("no -job <yaml file> specified")
+
 	}
 
 	// read the configuration file
@@ -63,15 +76,6 @@ func main() {
 	job, err := xls2sheets.FromConfig(jobData)
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	opts := []authmgr.Option{
-		authmgr.OptTryWebAuth(!*consoleAuth, "/", ""),
-		authmgr.OptAppName("rusq", "sheets-refresh"),
-		authmgr.OptUseIndexPage(true),
-	}
-	if *resetAuth {
-		opts = append(opts, authmgr.OptResetAuth())
 	}
 
 	// prepare config from provided credentials file
