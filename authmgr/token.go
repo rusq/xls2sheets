@@ -104,7 +104,7 @@ func (m *Manager) loadToken(filename string) (*oauth2.Token, error) {
 	return token, nil
 }
 
-// saveToken the token to file.
+// saveToken saves the token to file.
 func (m *Manager) saveToken(token *oauth2.Token) error {
 	var fullPath = m.tokenFile
 	if fullPath == "" {
@@ -121,6 +121,7 @@ func (m *Manager) saveToken(token *oauth2.Token) error {
 	return gob.NewEncoder(f).Encode(token)
 }
 
+// cliTokenRequest does the auth exchange using current terminal.
 func (m *Manager) cliTokenRequest() (*oauth2.Token, error) {
 	authURL := m.Config().AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	fmt.Printf("Go to the following link in your browser:\n%v\n\n"+
@@ -139,8 +140,10 @@ func (m *Manager) cliTokenRequest() (*oauth2.Token, error) {
 	return tok, nil
 }
 
+// browserTokenRequest requests the token through the web.
 func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
 	tokenChan := make(chan *oauth2.Token)
+
 	srv := http.Server{
 		Addr:    m.opts.listenerAddr,
 		Handler: m.Handlers(tokenChan),

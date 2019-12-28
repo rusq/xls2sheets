@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	maxCredFileSz = 131072 // 128KB for credentials file is more than enough
+	maxCredFileSz = 32768 // 32KiB for credentials file is more than enough
 
 	listenerHost = "localhost"
 	listenerPort = "6061" //  to avoid collision with godoc etc.
