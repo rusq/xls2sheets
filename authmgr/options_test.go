@@ -40,8 +40,8 @@ func TestOptListenerAddr(t *testing.T) {
 		after   *Manager
 		wantErr bool
 	}{
-		{"listener set", args{"new"}, &Manager{}, &Manager{listenerAddr: ""}, false},
-		{"empty listener", args{""}, &Manager{}, &Manager{listenerAddr: listenerHost + ":" + listenerPort}, false},
+		{"listener set", args{"new"}, &Manager{}, &Manager{opts: options{listenerAddr: ""}}, false},
+		{"empty listener", args{""}, &Manager{}, &Manager{opts: options{listenerAddr: listenerHost + ":" + listenerPort}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -52,7 +52,7 @@ func TestOptListenerAddr(t *testing.T) {
 				t.Errorf("OptListenerAddr() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(tt.args.addr, m.listenerAddr); diff != "" {
+			if diff := cmp.Diff(tt.args.addr, m.opts.listenerAddr); diff != "" {
 				t.Errorf("OptListenerAddr() fail, (-want,+got):\n%s", diff)
 			}
 		})
@@ -74,26 +74,26 @@ func TestOptTryWebAuth(t *testing.T) {
 	}{
 		{"t, set",
 			args{true, "", "blah"},
-			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: ""},
-			&Manager{tryWebAuth: true, webRootPath: "", redirectURLBase: "blah"},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: ""}},
+			&Manager{opts: options{tryWebAuth: true, webRootPath: "", redirectURLBase: "blah"}},
 			false,
 		},
 		{"t, unset",
 			args{true, "/kek", ""},
-			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: ""},
-			&Manager{tryWebAuth: true, webRootPath: "/kek", redirectURLBase: ""},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: ""}},
+			&Manager{opts: options{tryWebAuth: true, webRootPath: "/kek", redirectURLBase: ""}},
 			false,
 		},
 		{"f, set",
 			args{false, "", "lol"},
-			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: ""},
-			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: "lol"},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: ""}},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: "lol"}},
 			false,
 		},
 		{"f, unset",
 			args{false, "", ""},
-			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: ""},
-			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: ""},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: ""}},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: ""}},
 			false,
 		},
 	}
@@ -125,8 +125,8 @@ func TestOptAppName(t *testing.T) {
 		after   *Manager
 		wantErr bool
 	}{
-		{"1", args{"vendor", "appname"}, &Manager{}, &Manager{vendor: "vendor", appname: "appname", configDir: configdir.New("vendor", "appname")}, false},
-		{"empty", args{"", ""}, &Manager{config: &oauth2.Config{ClientID: "blah"}}, &Manager{config: &oauth2.Config{ClientID: "blah"}, vendor: defVendor, appname: defAppPrefix + "5bf1fd927dfb8679496a2e6cf00cbe50c1c87145", configDir: configdir.New(defVendor, defAppPrefix+"5bf1fd927dfb8679496a2e6cf00cbe50c1c87145")}, false},
+		{"1", args{"vendor", "appname"}, &Manager{}, &Manager{opts: options{vendor: "vendor", appname: "appname"}, configDir: configdir.New("vendor", "appname")}, false},
+		{"empty", args{"", ""}, &Manager{config: &oauth2.Config{ClientID: "blah"}}, &Manager{config: &oauth2.Config{ClientID: "blah"}, opts: options{vendor: defVendor, appname: defAppPrefix + "5bf1fd927dfb8679496a2e6cf00cbe50c1c87145"}, configDir: configdir.New(defVendor, defAppPrefix+"5bf1fd927dfb8679496a2e6cf00cbe50c1c87145")}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -155,8 +155,8 @@ func TestOptUseIndexPage(t *testing.T) {
 		after   *Manager
 		wantErr bool
 	}{
-		{"t", args{true}, &Manager{}, &Manager{useIndexPage: true}, false},
-		{"f", args{false}, &Manager{useIndexPage: true}, &Manager{useIndexPage: false}, false},
+		{"t", args{true}, &Manager{}, &Manager{opts: options{useIndexPage: true}}, false},
+		{"f", args{false}, &Manager{opts: options{useIndexPage: true}}, &Manager{opts: options{useIndexPage: false}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

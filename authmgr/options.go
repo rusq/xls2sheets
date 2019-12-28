@@ -36,7 +36,7 @@ func OptTemplateDir(dir string) Option {
 		if err != nil {
 			return err
 		}
-		m.templateDir = dir
+		m.opts.templateDir = dir
 		return nil
 	}
 }
@@ -44,7 +44,7 @@ func OptTemplateDir(dir string) Option {
 // OptListenerAddr sets the template directory for templates.
 func OptListenerAddr(addr string) Option {
 	return func(m *Manager) error {
-		m.listenerAddr = addr
+		m.opts.listenerAddr = addr
 		return nil
 	}
 }
@@ -53,9 +53,9 @@ func OptListenerAddr(addr string) Option {
 // authentication.  Otherwise - console login is used.
 func OptTryWebAuth(b bool, rootPath string, redirectURLBase string) Option {
 	return func(m *Manager) error {
-		m.webRootPath = rootPath
-		m.tryWebAuth = b
-		m.redirectURLBase = redirectURLBase
+		m.opts.webRootPath = rootPath
+		m.opts.tryWebAuth = b
+		m.opts.redirectURLBase = redirectURLBase
 		return nil
 	}
 }
@@ -63,9 +63,8 @@ func OptTryWebAuth(b bool, rootPath string, redirectURLBase string) Option {
 // OptAppName sets the application name.
 func OptAppName(vendor, name string) Option {
 	return func(m *Manager) error {
-		m.vendor = vendor
-		m.appname = name
-		m.setAppName()
+		m.opts.vendor = vendor
+		m.opts.appname = name
 		return nil
 	}
 }
@@ -74,7 +73,7 @@ func OptAppName(vendor, name string) Option {
 // to Oauth provider scopes permission page.
 func OptUseIndexPage(b bool) Option {
 	return func(m *Manager) error {
-		m.useIndexPage = b
+		m.opts.useIndexPage = b
 		return nil
 	}
 }

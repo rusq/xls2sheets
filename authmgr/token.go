@@ -142,7 +142,7 @@ func (m *Manager) cliTokenRequest() (*oauth2.Token, error) {
 func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
 	tokenChan := make(chan *oauth2.Token)
 	srv := http.Server{
-		Addr:    m.listenerAddr,
+		Addr:    m.opts.listenerAddr,
 		Handler: m.Handlers(tokenChan),
 	}
 
@@ -152,13 +152,13 @@ func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
 		errC <- srv.ListenAndServe()
 		close(isShutdown)
 	}()
-	log.Printf("callback server listening on %s\n", m.listenerAddr)
+	log.Printf("callback server listening on %s\n", m.opts.listenerAddr)
 
 	fmt.Printf("Please follow the Instructions in your browser to authorize %s\n"+
-		"or press [Ctrl]+[C] to cancel...\n", m.appname)
-	if err := OpenBrowser("http://" + m.listenerAddr + basepath); err != nil {
+		"or press [Ctrl]+[C] to cancel...\n", m.opts.appname)
+	if err := OpenBrowser("http://" + m.opts.listenerAddr + basepath); err != nil {
 		fmt.Printf("If your browser does not open automatically, please open"+
-			" this link to authenticate google sheets:\n%s\n", m.listenerAddr)
+			" this link to authenticate google sheets:\n%s\n", m.opts.listenerAddr)
 	}
 
 	var token *oauth2.Token
@@ -179,7 +179,7 @@ func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
 func (m *Manager) Handlers(tokenChan chan<- *oauth2.Token) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(m.webRootPath, m.rootHandler)
+	mux.HandleFunc(m.opts.webRootPath, m.rootHandler)
 	mux.HandleFunc(m.loginPath(), m.loginHandler)
 	mux.HandleFunc(m.callbackPath(), m.createCallbackHandler(tokenChan))
 
@@ -187,19 +187,19 @@ func (m *Manager) Handlers(tokenChan chan<- *oauth2.Token) http.Handler {
 }
 
 func (m *Manager) callbackPath() string {
-	return path.Join(m.webRootPath, pCallback) + "/"
+	return path.Join(m.opts.webRootPath, pCallback) + "/"
 }
 
 func (m *Manager) loginPath() string {
-	return path.Join(m.webRootPath, pLogin) + "/"
+	return path.Join(m.opts.webRootPath, pLogin) + "/"
 }
 
 func (m *Manager) rootHandler(w http.ResponseWriter, r *http.Request) {
-	if !m.useIndexPage {
+	if !m.opts.useIndexPage {
 		http.Redirect(w, r, pLogin, http.StatusTemporaryRedirect)
 		return
 	}
-	if err := tmpl.ExecuteTemplate(w, tmIndex, appInfoPage{m.appname, m.loginPath()}); err != nil {
+	if err := tmpl.ExecuteTemplate(w, tmIndex, appInfoPage{m.opts.appname, m.loginPath()}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -228,7 +228,7 @@ func (m *Manager) createCallbackHandler(tokenChan chan<- *oauth2.Token) http.Han
 		}
 
 		// success page, rendering just before shutting down the whole thing.
-		if err := tmpl.ExecuteTemplate(w, tmCallback, appInfoPage{AppName: m.appname}); err != nil {
+		if err := tmpl.ExecuteTemplate(w, tmCallback, appInfoPage{AppName: m.opts.appname}); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 

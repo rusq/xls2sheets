@@ -39,11 +39,14 @@ type Manager struct {
 
 	reqFunc tokenReqFunc
 
-	tokenFile   string
-	configDir   configdir.ConfigDir
-	webRootPath string
+	tokenFile string
+	configDir configdir.ConfigDir
 
-	// options
+	opts options
+}
+
+type options struct {
+	webRootPath     string
 	redirectURLBase string
 	templateDir     string
 	listenerAddr    string
@@ -63,7 +66,7 @@ func applyOpts(m *Manager, opts ...Option) (*Manager, error) {
 			return nil, err
 		}
 	}
-	m.setBrowserAuth(m.tryWebAuth, m.listenerAddr, m.redirectURLBase)
+	m.setBrowserAuth(m.opts.tryWebAuth, m.opts.listenerAddr, m.opts.redirectURLBase)
 	m.setAppName()
 
 	return m, nil
@@ -80,13 +83,13 @@ func New(config *oauth2.Config, opts ...Option) (*Manager, error) {
 }
 
 func (m *Manager) setAppName() {
-	if m.vendor == "" {
-		m.vendor = defVendor
+	if m.opts.vendor == "" {
+		m.opts.vendor = defVendor
 	}
-	if m.appname == "" {
-		m.appname = defAppPrefix + m.clientIDhash()
+	if m.opts.appname == "" {
+		m.opts.appname = defAppPrefix + m.clientIDhash()
 	}
-	m.configDir = configdir.New(m.vendor, m.appname)
+	m.configDir = configdir.New(m.opts.vendor, m.opts.appname)
 }
 
 // NewFromGoogleCreds creates manager from a credentials file
@@ -147,18 +150,18 @@ func (m *Manager) setBrowserAuth(enabled bool, listenerAddr, redirectURLBase str
 	m.reqFunc = m.browserTokenRequest
 
 	// set request parameters
-	if m.webRootPath == "" {
-		m.webRootPath = basepath
+	if m.opts.webRootPath == "" {
+		m.opts.webRootPath = basepath
 	} else {
-		if m.webRootPath[len(m.webRootPath)-1] != '/' {
-			m.webRootPath = m.webRootPath + "/"
+		if m.opts.webRootPath[len(m.opts.webRootPath)-1] != '/' {
+			m.opts.webRootPath = m.opts.webRootPath + "/"
 		}
 	}
 	if listenerAddr == "" {
-		m.listenerAddr = fmt.Sprintf("%s:%s", listenerHost, listenerPort)
+		m.opts.listenerAddr = fmt.Sprintf("%s:%s", listenerHost, listenerPort)
 	}
 	if redirectURLBase == "" {
-		m.config.RedirectURL = fmt.Sprintf("http://%s%s", m.listenerAddr, m.callbackPath())
+		m.config.RedirectURL = fmt.Sprintf("http://%s%s", m.opts.listenerAddr, m.callbackPath())
 	} else {
 		m.config.RedirectURL = path.Join(redirectURLBase, m.callbackPath())
 	}
