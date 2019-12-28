@@ -61,8 +61,9 @@ func TestOptListenerAddr(t *testing.T) {
 
 func TestOptTryWebAuth(t *testing.T) {
 	type args struct {
-		b           bool
-		redirectURL string
+		b               bool
+		rootPath        string
+		redirectURLbase string
 	}
 	tests := []struct {
 		name    string
@@ -72,33 +73,33 @@ func TestOptTryWebAuth(t *testing.T) {
 		wantErr bool
 	}{
 		{"t, set",
-			args{true, "blah"},
-			&Manager{tryWebAuth: false, redirectURL: ""},
-			&Manager{tryWebAuth: true, redirectURL: "blah"},
+			args{true, "", "blah"},
+			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: ""},
+			&Manager{tryWebAuth: true, webRootPath: "", redirectURLBase: "blah"},
 			false,
 		},
 		{"t, unset",
-			args{true, ""},
-			&Manager{tryWebAuth: false, redirectURL: ""},
-			&Manager{tryWebAuth: true, redirectURL: ""},
+			args{true, "/kek", ""},
+			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: ""},
+			&Manager{tryWebAuth: true, webRootPath: "/kek", redirectURLBase: ""},
 			false,
 		},
 		{"f, set",
-			args{false, "lol"},
-			&Manager{tryWebAuth: false, redirectURL: ""},
-			&Manager{tryWebAuth: false, redirectURL: "lol"},
+			args{false, "", "lol"},
+			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: ""},
+			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: "lol"},
 			false,
 		},
 		{"f, unset",
-			args{false, ""},
-			&Manager{tryWebAuth: false, redirectURL: ""},
-			&Manager{tryWebAuth: false, redirectURL: ""},
+			args{false, "", ""},
+			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: ""},
+			&Manager{tryWebAuth: false, webRootPath: "", redirectURLBase: ""},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := OptTryWebAuth(tt.args.b, tt.args.redirectURL)
+			got := OptTryWebAuth(tt.args.b, tt.args.rootPath, tt.args.redirectURLbase)
 			m := tt.before
 			err := got(m)
 			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{})); diff != "" {

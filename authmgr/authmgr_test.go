@@ -36,18 +36,18 @@ func TestManager_clientIDhash(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Manager{
-				token:        tt.fields.token,
-				config:       tt.fields.config,
-				reqFunc:      tt.fields.reqFunc,
-				tokenFile:    tt.fields.tokenFile,
-				configDir:    tt.fields.configDir,
-				redirectURL:  tt.fields.redirectURL,
-				templateDir:  tt.fields.templateDir,
-				listenerAddr: tt.fields.listenerAddr,
-				tryWebAuth:   tt.fields.tryWebAuth,
-				useIndexPage: tt.fields.useIndexPage,
-				vendor:       tt.fields.vendor,
-				appname:      tt.fields.appname,
+				token:           tt.fields.token,
+				config:          tt.fields.config,
+				reqFunc:         tt.fields.reqFunc,
+				tokenFile:       tt.fields.tokenFile,
+				configDir:       tt.fields.configDir,
+				redirectURLBase: tt.fields.redirectURL,
+				templateDir:     tt.fields.templateDir,
+				listenerAddr:    tt.fields.listenerAddr,
+				tryWebAuth:      tt.fields.tryWebAuth,
+				useIndexPage:    tt.fields.useIndexPage,
+				vendor:          tt.fields.vendor,
+				appname:         tt.fields.appname,
 			}
 			if got := m.clientIDhash(); got != tt.want {
 				t.Errorf("Manager.clientIDhash() = %v, want %v", got, tt.want)
@@ -143,18 +143,18 @@ func TestManager_setBrowserAuth(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Manager{
-				token:        tt.fields.token,
-				config:       tt.fields.config,
-				reqFunc:      tt.fields.reqFunc,
-				tokenFile:    tt.fields.tokenFile,
-				configDir:    tt.fields.configDir,
-				redirectURL:  tt.fields.redirectURL,
-				templateDir:  tt.fields.templateDir,
-				listenerAddr: tt.fields.listenerAddr,
-				tryWebAuth:   tt.fields.tryWebAuth,
-				useIndexPage: tt.fields.useIndexPage,
-				vendor:       tt.fields.vendor,
-				appname:      tt.fields.appname,
+				token:           tt.fields.token,
+				config:          tt.fields.config,
+				reqFunc:         tt.fields.reqFunc,
+				tokenFile:       tt.fields.tokenFile,
+				configDir:       tt.fields.configDir,
+				redirectURLBase: tt.fields.redirectURL,
+				templateDir:     tt.fields.templateDir,
+				listenerAddr:    tt.fields.listenerAddr,
+				tryWebAuth:      tt.fields.tryWebAuth,
+				useIndexPage:    tt.fields.useIndexPage,
+				vendor:          tt.fields.vendor,
+				appname:         tt.fields.appname,
 			}
 			m.setBrowserAuth(tt.args.enabled, tt.args.listenerAddr, tt.args.redirectURL)
 		})
@@ -187,18 +187,18 @@ func TestManager_Client(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Manager{
-				token:        tt.fields.token,
-				config:       tt.fields.config,
-				reqFunc:      tt.fields.reqFunc,
-				tokenFile:    tt.fields.tokenFile,
-				configDir:    tt.fields.configDir,
-				redirectURL:  tt.fields.redirectURL,
-				templateDir:  tt.fields.templateDir,
-				listenerAddr: tt.fields.listenerAddr,
-				tryWebAuth:   tt.fields.tryWebAuth,
-				useIndexPage: tt.fields.useIndexPage,
-				vendor:       tt.fields.vendor,
-				appname:      tt.fields.appname,
+				token:           tt.fields.token,
+				config:          tt.fields.config,
+				reqFunc:         tt.fields.reqFunc,
+				tokenFile:       tt.fields.tokenFile,
+				configDir:       tt.fields.configDir,
+				redirectURLBase: tt.fields.redirectURL,
+				templateDir:     tt.fields.templateDir,
+				listenerAddr:    tt.fields.listenerAddr,
+				tryWebAuth:      tt.fields.tryWebAuth,
+				useIndexPage:    tt.fields.useIndexPage,
+				vendor:          tt.fields.vendor,
+				appname:         tt.fields.appname,
 			}
 			got, err := m.Client()
 			if (err != nil) != tt.wantErr {
@@ -238,18 +238,18 @@ func TestManager_Token(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Manager{
-				token:        tt.fields.token,
-				config:       tt.fields.config,
-				reqFunc:      tt.fields.reqFunc,
-				tokenFile:    tt.fields.tokenFile,
-				configDir:    tt.fields.configDir,
-				redirectURL:  tt.fields.redirectURL,
-				templateDir:  tt.fields.templateDir,
-				listenerAddr: tt.fields.listenerAddr,
-				tryWebAuth:   tt.fields.tryWebAuth,
-				useIndexPage: tt.fields.useIndexPage,
-				vendor:       tt.fields.vendor,
-				appname:      tt.fields.appname,
+				token:           tt.fields.token,
+				config:          tt.fields.config,
+				reqFunc:         tt.fields.reqFunc,
+				tokenFile:       tt.fields.tokenFile,
+				configDir:       tt.fields.configDir,
+				redirectURLBase: tt.fields.redirectURL,
+				templateDir:     tt.fields.templateDir,
+				listenerAddr:    tt.fields.listenerAddr,
+				tryWebAuth:      tt.fields.tryWebAuth,
+				useIndexPage:    tt.fields.useIndexPage,
+				vendor:          tt.fields.vendor,
+				appname:         tt.fields.appname,
 			}
 			got, err := m.Token()
 			if (err != nil) != tt.wantErr {
@@ -288,18 +288,18 @@ func TestManager_Config(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &Manager{
-				token:        tt.fields.token,
-				config:       tt.fields.config,
-				reqFunc:      tt.fields.reqFunc,
-				tokenFile:    tt.fields.tokenFile,
-				configDir:    tt.fields.configDir,
-				redirectURL:  tt.fields.redirectURL,
-				templateDir:  tt.fields.templateDir,
-				listenerAddr: tt.fields.listenerAddr,
-				tryWebAuth:   tt.fields.tryWebAuth,
-				useIndexPage: tt.fields.useIndexPage,
-				vendor:       tt.fields.vendor,
-				appname:      tt.fields.appname,
+				token:           tt.fields.token,
+				config:          tt.fields.config,
+				reqFunc:         tt.fields.reqFunc,
+				tokenFile:       tt.fields.tokenFile,
+				configDir:       tt.fields.configDir,
+				redirectURLBase: tt.fields.redirectURL,
+				templateDir:     tt.fields.templateDir,
+				listenerAddr:    tt.fields.listenerAddr,
+				tryWebAuth:      tt.fields.tryWebAuth,
+				useIndexPage:    tt.fields.useIndexPage,
+				vendor:          tt.fields.vendor,
+				appname:         tt.fields.appname,
 			}
 			if got := m.Config(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Manager.Config() = %v, want %v", got, tt.want)

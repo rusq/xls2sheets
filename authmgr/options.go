@@ -51,10 +51,11 @@ func OptListenerAddr(addr string) Option {
 
 // OptTryWebAuth sets the flag to attempt to present user with browser for
 // authentication.  Otherwise - console login is used.
-func OptTryWebAuth(b bool, redirectURL string) Option {
+func OptTryWebAuth(b bool, rootPath string, redirectURLBase string) Option {
 	return func(m *Manager) error {
+		m.webRootPath = rootPath
 		m.tryWebAuth = b
-		m.redirectURL = redirectURL
+		m.redirectURLBase = redirectURLBase
 		return nil
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"runtime"
 
 	"github.com/shibukawa/configdir"
@@ -38,15 +39,16 @@ type Manager struct {
 
 	reqFunc tokenReqFunc
 
-	tokenFile string
-	configDir configdir.ConfigDir
+	tokenFile   string
+	configDir   configdir.ConfigDir
+	webRootPath string
 
 	// options
-	redirectURL  string
-	templateDir  string
-	listenerAddr string
-	tryWebAuth   bool
-	useIndexPage bool
+	redirectURLBase string
+	templateDir     string
+	listenerAddr    string
+	tryWebAuth      bool
+	useIndexPage    bool
 
 	vendor  string
 	appname string
@@ -54,14 +56,14 @@ type Manager struct {
 
 type tokenReqFunc func() (*oauth2.Token, error)
 
-// apply applies specified options
-func (m *Manager) apply(opts ...Option) (*Manager, error) {
+// applyOpts applies specified options
+func applyOpts(m *Manager, opts ...Option) (*Manager, error) {
 	for _, opt := range opts {
 		if err := opt(m); err != nil {
 			return nil, err
 		}
 	}
-	m.setBrowserAuth(m.tryWebAuth, m.listenerAddr, m.redirectURL)
+	m.setBrowserAuth(m.tryWebAuth, m.listenerAddr, m.redirectURLBase)
 	m.setAppName()
 
 	return m, nil
@@ -69,9 +71,8 @@ func (m *Manager) apply(opts ...Option) (*Manager, error) {
 
 // New creates a new instance of Manager from oauth.Config
 func New(config *oauth2.Config, opts ...Option) (*Manager, error) {
-
-	m := &Manager{config: config}
-	if _, err := m.apply(opts...); err != nil {
+	m, err := applyOpts(&Manager{config: config}, opts...)
+	if err != nil {
 		return nil, err
 	}
 
@@ -136,7 +137,7 @@ func NewFromEnv(idKey, secretKey string, scopes []string, opts ...Option) (*Mana
 }
 
 // setBrowserAuth sets the required variables for web auth.
-func (m *Manager) setBrowserAuth(enabled bool, listenerAddr, redirectURL string) {
+func (m *Manager) setBrowserAuth(enabled bool, listenerAddr, redirectURLBase string) {
 	if !enabled {
 		// terminal prompt
 		m.reqFunc = m.cliTokenRequest
@@ -145,13 +146,21 @@ func (m *Manager) setBrowserAuth(enabled bool, listenerAddr, redirectURL string)
 	// browser token request
 	m.reqFunc = m.browserTokenRequest
 
+	// set request parameters
+	if m.webRootPath == "" {
+		m.webRootPath = basepath
+	} else {
+		if m.webRootPath[len(m.webRootPath)-1] != '/' {
+			m.webRootPath = m.webRootPath + "/"
+		}
+	}
 	if listenerAddr == "" {
 		m.listenerAddr = fmt.Sprintf("%s:%s", listenerHost, listenerPort)
 	}
-	if redirectURL == "" {
-		m.config.RedirectURL = fmt.Sprintf("http://%s%s", m.listenerAddr, callbackPath)
+	if redirectURLBase == "" {
+		m.config.RedirectURL = fmt.Sprintf("http://%s%s", m.listenerAddr, m.callbackPath())
 	} else {
-		m.config.RedirectURL = redirectURL
+		m.config.RedirectURL = path.Join(redirectURLBase, m.callbackPath())
 	}
 }
 
