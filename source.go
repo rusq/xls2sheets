@@ -113,6 +113,7 @@ func getFilename(loc string) (string, error) {
 // Process gets the file onto google drive, if needed (i.e. it not google
 // spreadsheet).  Returns the file ID on google drive.
 func (sf *SourceFile) Process(client *http.Client) (string, error) {
+	sf.FileLocation = os.ExpandEnv(sf.FileLocation)
 	// determine file type
 	typ := fileType(sf.FileLocation)
 	if typ == srcUnknown {

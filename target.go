@@ -27,7 +27,7 @@ type TargetSpreadsheet struct {
 	// Location (optional) is the location of the exported file on local disk.
 	// This will save the Google Spreadsheet to local disk.
 	// Example: "/Users/Anna/Documents/rates.xlsx"
-	Location string `yaml:"location"`
+	Location string `yaml:"location,omitempty"`
 	// TargetSheet specifies the start location within the target
 	// Google Sheet for all corresponding SheetAddressRange that
 	// are defined on the source.  Example:  [ Sheet2!B4, Sheet3!A1 ]
@@ -96,6 +96,9 @@ func (ts *TargetSpreadsheet) Update(client *http.Client, spreadsheetID string, s
 	if len(sheetAddressRange) != len(ts.SheetAddress) {
 		return errLengthMismatch
 	}
+
+	ts.Location = os.ExpandEnv(ts.Location)
+
 	sheetsService, err := sheets.New(client)
 	if err != nil {
 		return err
