@@ -3,6 +3,7 @@ token.json
 credentials.json
 
 # executables
+__debug_bin
 cmd/sheets-refresh/sheets-refresh
 cmd/sheets-refresh/sheets-refresh.exe
 examples/drive/drive
@@ -13,6 +14,7 @@ examples/drive/drive
 
 # backup files
 *~
+*.bak
 
 #OS files
 .DS_Store

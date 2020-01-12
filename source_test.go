@@ -30,7 +30,7 @@ func Test_generateName(t *testing.T) {
 	}
 }
 
-func Test_getFilename(t *testing.T) {
+func Test_filename(t *testing.T) {
 	type args struct {
 		loc string
 	}
@@ -47,13 +47,13 @@ func Test_getFilename(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getFilename(tt.args.loc)
+			got, err := filename(tt.args.loc)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("getFilename() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("filename() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("getFilename() = %v, want %v", got, tt.want)
+				t.Errorf("filename() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -76,8 +76,8 @@ func Test_fileType(t *testing.T) {
 		args args
 		want srcType
 	}{
-		{"local file with schema", args{"file://tea_with_lemon.xls"}, srcDisk},
-		{"local file without schema", args{f.Name()}, srcDisk},
+		{"local file with schema", args{"file://tea_with_lemon.xls"}, srcFile},
+		{"local file without schema", args{f.Name()}, srcFile},
 		{"remote file", args{"https://shadywebsite.com/README.xlsx"}, srcWeb},
 		{"google sheets id", args{"1jw2phhb11w6vKw5nkklWtSZHOxADIsXcyRgVLyea4ak"}, srcGSheet},
 		{"unknown", args{""}, srcUnknown},

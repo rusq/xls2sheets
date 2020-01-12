@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/rusq/xls2sheets"
-	"github.com/rusq/xls2sheets/authmgr"
+	"github.com/rusq/xls2sheets/internal/authmgr"
 
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/sheets/v4"
@@ -25,13 +25,15 @@ var (
 	consoleAuth = flag.Bool("console", false, "use text authentication prompts instead of opening browser")
 	version     = flag.Bool("version", false, "print program version and quit")
 
-	credentials *string
+	defaultCredentialsFile = filepath.Join(mustStr(os.UserHomeDir()), ".refresh-credentials.json")
+	credentials            = flag.String("auth", defaultCredentialsFile, "file with authentication data")
 )
 
-func init() {
-	home, _ := os.UserHomeDir()
-	defaultCredentialsFile := filepath.Join(home, ".refresh-credentials.json")
-	credentials = flag.String("auth", defaultCredentialsFile, "file with authentication data")
+func mustStr(s string, err error) string {
+	if err != nil {
+		panic(err)
+	}
+	return s
 }
 
 func main() {
@@ -60,7 +62,7 @@ func main() {
 	}
 
 	// initialise job from the configuration file data
-	job, err := xls2sheets.FromConfig(jobData)
+	job, err := xls2sheets.NewJobFromConfig(jobData)
 	if err != nil {
 		log.Fatal(err)
 	}
