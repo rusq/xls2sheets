@@ -51,7 +51,7 @@ func main() {
 	}
 
 	opts := []authmgr.Option{
-		authmgr.OptTryWebAuth(!*consoleAuth, "/"),
+		authmgr.OptTryWebAuth(!*consoleAuth, "/", ""),
 		authmgr.OptAppName("rusq", "sheets-refresh"),
 		authmgr.OptUseIndexPage(true),
 	}
