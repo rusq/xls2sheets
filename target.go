@@ -122,7 +122,7 @@ func (trg *Target) Update(client *http.Client, srcSheetID string, sheetAddressRa
 }
 
 // updateSheet updates only one sheet
-func (ts *Target) updateSheet(sheetsService *sheets.Service, data *sheets.ValueRange) (*sheets.BatchUpdateValuesResponse, error) {
+func (trg *Target) updateSheet(sheetsService *sheets.Service, data *sheets.ValueRange) (*sheets.BatchUpdateValuesResponse, error) {
 	const valueInputOption = userEntered // proper formatting of resulting values
 
 	// Reference: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/batchUpdate
@@ -132,7 +132,7 @@ func (ts *Target) updateSheet(sheetsService *sheets.Service, data *sheets.ValueR
 	}
 
 	resp, err := sheetsService.Spreadsheets.Values.
-		BatchUpdate(ts.SpreadsheetID, rb).
+		BatchUpdate(trg.SpreadsheetID, rb).
 		Context(context.TODO()).
 		Do()
 	if err != nil {
@@ -142,22 +142,22 @@ func (ts *Target) updateSheet(sheetsService *sheets.Service, data *sheets.ValueR
 	return resp, nil
 }
 
-func (ts *Target) download(client *http.Client) error {
-	if ts.Location == "" {
+func (trg *Target) download(client *http.Client) error {
+	if trg.Location == "" {
 		return errors.New("target location is empty")
 	}
-	if err := validPath(ts.Location); err != nil {
+	if err := validPath(trg.Location); err != nil {
 		return err
 	}
 	drv, err := drive.New(client)
 	if err != nil {
 		return err
 	}
-	resp, err := drv.Files.Export(ts.SpreadsheetID, mime.TypeByExtension(filepath.Ext(ts.Location))).Download()
+	resp, err := drv.Files.Export(trg.SpreadsheetID, mime.TypeByExtension(filepath.Ext(trg.Location))).Download()
 	if err != nil {
 		return err
 	}
-	f, err := os.Create(ts.Location)
+	f, err := os.Create(trg.Location)
 	if err != nil {
 		return err
 	}
@@ -186,10 +186,10 @@ func validPath(filename string) error {
 
 // validate checks if all defined in the configuration sheets exist and
 // returns the *sheet.Spreadsheet structure.
-func (ts *Target) validate(sheetsService *sheets.Service) (*sheets.Spreadsheet, error) {
+func (trg *Target) validate(sheetsService *sheets.Service) (*sheets.Spreadsheet, error) {
 	// getting information about the spreadsheet
 	log.Printf("  * retrieving information about the spreadsheet")
-	spreadsheet, err := sheetsService.Spreadsheets.Get(ts.SpreadsheetID).Do()
+	spreadsheet, err := sheetsService.Spreadsheets.Get(trg.SpreadsheetID).Do()
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,7 @@ func (ts *Target) validate(sheetsService *sheets.Service) (*sheets.Spreadsheet, 
 	log.Printf("  * validating target configuration")
 	// need to ensure that all provided addresses are referencing valid
 	// sheets
-	for _, address := range ts.SheetAddress {
+	for _, address := range trg.SheetAddress {
 		valid := false
 
 		for _, sheet := range spreadsheet.Sheets {
@@ -207,7 +207,7 @@ func (ts *Target) validate(sheetsService *sheets.Service) (*sheets.Spreadsheet, 
 			}
 		}
 		if !valid {
-			if err := ts.addSheetOrFail(sheetsService, address); err != nil {
+			if err := trg.addSheetOrFail(sheetsService, address); err != nil {
 				return nil, err
 			}
 

@@ -8,15 +8,20 @@ location to Google Sheets workbook.
 
 Supported Sources:
 
-  * Microsoft Excel files (xls and xlsx files) on local disk or remote web
-    site;
-  * Google Sheets spreadsheet.
+  * Files types:
+    * Google Sheets spreadsheet.
+    * Microsoft Excel: **xls, xlsx**
+    * Plain CSV: **csv** (NOTE: don't worry about specifying address range, it
+      will be populated automatically for CSV files).
+    * Open Office Spreadsheet: **ods**
+    * Maybe others (supported by Google Sheets)
+  * Local files or Remote (can fetch from URLs).
 
 Supported Targets:
 
   * Google Sheets spreadsheet;
   * Save file to the local disk (all supported by Google Sheets formats, i.e.
-    XLSX, XLS, ODT, PDF, TXT, CSV, HTML).
+    XLSX, XLS, ODS, PDF, TXT, CSV, HTML).
 
 ## Features ##
 
@@ -63,9 +68,10 @@ Otherwise, you can download the executable for your Operating System from
 * Configuration file describes a **Job** to be performed.
 * A **Job** consists of one or more **Tasks**.
 * Each **Task** has a name, and **Source** and **Target** sections.
-  * In **Source** one must specify a *URI of the MS Excel file* (xlsx) or ID
+  * In **Source** one must specify a *URI of the Spreadsheet file*  or ID
     of source Google Sheets Document and one or more *Address Ranges* to be
-    processed, i.e. "*Workbook!A1:C1000*" or "*Sheet1!A2:U*".
+    processed, i.e. "*Workbook!A1:C1000*" or "*Sheet1!A2:U*".  No need to
+    specify the address range for *CSV* file.
   * In **Target** - a *Google SpreadsheetID* and one or more *Address* to copy
     to, i.e. "Backup!A1".  Optionally, one can specify whether to *Create* the
     worksheet or *Clear* the destination worksheet before copying.
@@ -100,13 +106,16 @@ In the example two source files are combined into one Google Sheets Document:
   source:
     location: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-monthly.xlsx
     address_range:
-      - Data!A1:U
+      - Data!A1:U   # address range for Data sheet.
+      - Data        # complete import of Data sheet.
   target:
     spreadsheet_id: 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
     address:
       - Monthly Rates
+      - Another Monthly Rates (full)
     create: true
     clear: true
+  leave_junk: false     # leave temporary files.  May be used for debugging.
 02_daily_rates:
   source:
     location: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-daily.xlsx
@@ -114,7 +123,7 @@ In the example two source files are combined into one Google Sheets Document:
       - Data!A1:T
   target:
     spreadsheet_id: 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
-    location: ./sample.ods
+    location: ./sample.ods    # save the file locally too.
     address:
       - Daily Rates
     create: true
