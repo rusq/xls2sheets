@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/shibukawa/configdir"
-	"golang.org/x/oauth2"
 )
 
 func TestOptTemplateDir(t *testing.T) {
@@ -102,7 +100,7 @@ func TestOptTryWebAuth(t *testing.T) {
 			got := OptTryWebAuth(tt.args.b, tt.args.rootPath, tt.args.redirectURLbase)
 			m := tt.before
 			err := got(m)
-			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{})); diff != "" {
+			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{}, options{})); diff != "" {
 				t.Errorf("OptTryWebAuth() fail, (-want,+got):\n%s", diff)
 			}
 			if (err != nil) != tt.wantErr {
@@ -125,15 +123,15 @@ func TestOptAppName(t *testing.T) {
 		after   *Manager
 		wantErr bool
 	}{
-		{"1", args{"vendor", "appname"}, &Manager{}, &Manager{opts: options{vendor: "vendor", appname: "appname"}, configDir: configdir.New("vendor", "appname")}, false},
-		{"empty", args{"", ""}, &Manager{config: &oauth2.Config{ClientID: "blah"}}, &Manager{config: &oauth2.Config{ClientID: "blah"}, opts: options{vendor: defVendor, appname: defAppPrefix + "5bf1fd927dfb8679496a2e6cf00cbe50c1c87145"}, configDir: configdir.New(defVendor, defAppPrefix+"5bf1fd927dfb8679496a2e6cf00cbe50c1c87145")}, false},
+		{"1", args{"vendor", "appname"}, &Manager{}, &Manager{opts: options{vendor: "vendor", appname: "appname"}}, false},
+		{"empty", args{"", ""}, &Manager{}, &Manager{}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := OptAppName(tt.args.vendor, tt.args.name)
+			opt := OptAppName(tt.args.vendor, tt.args.name)
 			m := tt.before
-			err := got(m)
-			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{})); diff != "" {
+			err := opt(m)
+			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{}, options{})); diff != "" {
 				t.Errorf("OptAppName() fail, (-want,+got):\n%s", diff)
 			}
 			if (err != nil) != tt.wantErr {
@@ -163,7 +161,7 @@ func TestOptUseIndexPage(t *testing.T) {
 			got := OptUseIndexPage(tt.args.b)
 			m := tt.before
 			err := got(m)
-			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{})); diff != "" {
+			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{}, options{})); diff != "" {
 				t.Errorf("OptUseIndexPage() fail, (-want,+got):\n%s", diff)
 			}
 			if (err != nil) != tt.wantErr {
