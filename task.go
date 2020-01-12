@@ -4,22 +4,13 @@ import (
 	"net/http"
 )
 
-// Tasks is a map of taskName -> Task.
-type Tasks map[string]*Task
-
-// Task contains all information needed to refresh the Google
-// Spreadsheet from an external file.
-type Task struct {
-	Source *SourceFile        `yaml:"source"` // Source file info (defined below)
-	Target *TargetSpreadsheet `yaml:"target"` // Target sheet info (defined below)
-}
-
 // NewTask creates the task
-func NewTask(source *SourceFile, target *TargetSpreadsheet) *Task {
-	return &Task{
+func NewTask(source *Source, target *Target) *Task {
+	t := &Task{
 		Source: source,
 		Target: target,
 	}
+	return t
 }
 
 // Run runs the refresh task
@@ -31,7 +22,9 @@ func (task *Task) Run(client *http.Client) error {
 	}
 	// this ensures that the temporary file is deleted at the end of
 	// conversion
-	defer task.Source.Delete(client)
+	if !task.LeaveJunk {
+		defer task.Source.Delete(client)
+	}
 	// copy data from temporary file to target file
 	if err := task.Target.Update(client, tempSpreadsheetID, task.Source.SheetAddressRange); err != nil {
 		return err

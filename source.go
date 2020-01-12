@@ -23,38 +23,22 @@ const (
 	// tempFilePrefix used for temporary file uploads
 	tempFilePrefix = "xls2sheets$"
 
-	minFileSz = 512 // can't imagine excel file smaller than this.
+	extCSV = ".csv"
 )
 
 type srcType string
 
 const (
 	srcUnknown srcType = "<unknown>"
-	srcDisk    srcType = "local file"
+	srcFile    srcType = "local file"
 	srcWeb     srcType = "remote file"
 	srcGSheet  srcType = "Google Spreadsheet"
 )
 
 var converters = map[srcType]sourcer{
-	srcDisk:   disk{},
+	srcFile:   file{},
 	srcWeb:    web{},
 	srcGSheet: gsheet{},
-}
-
-// SourceFile contains the information about the source file and
-// address + range of cells to copy
-type SourceFile struct {
-	// Location specifies the file location
-	// Valid values:
-	//
-	// 		https://www.example.com/dataset.xlsx
-	//		file://MyWorkbook.xlsx
-	FileLocation string `yaml:"location"`
-	// SheetAddress is the address within the source workbook.
-	// I.e. "Data!A1:U"
-	SheetAddressRange []string `yaml:"address_range"`
-
-	fileID string // uploaded file ID
 }
 
 // sourcer is the source file interface
@@ -65,7 +49,7 @@ type sourcer interface {
 }
 
 // different source types
-type disk struct{}
+type file struct{}
 type web struct{}
 type gsheet struct{}
 
@@ -74,7 +58,6 @@ var gsheetRe = regexp.MustCompile(`[-\w]{25,}$`)
 // Errors.
 var (
 	errNothingToDelete = errors.New("delete called before upload")
-	errTooSmall        = errors.New("file is too small, is that even a spreasheet")
 	errUnknown         = errors.New("unknown file type or location")
 )
 
@@ -83,13 +66,13 @@ func fileType(loc string) srcType {
 	default:
 		return srcUnknown
 	case strings.HasPrefix(strings.ToLower(loc), "file://"):
-		return srcDisk
+		return srcFile
 	case strings.Contains(loc, "://"):
 		return srcWeb
 	case gsheetRe.MatchString(loc):
 		return srcGSheet
 	case fileExists(loc):
-		return srcDisk
+		return srcFile
 	}
 }
 
@@ -101,7 +84,7 @@ func fileExists(loc string) bool {
 	return true
 }
 
-func getFilename(loc string) (string, error) {
+func filename(loc string) (string, error) {
 	url, err := url.Parse(loc)
 	if err != nil {
 		return "", err
@@ -110,9 +93,24 @@ func getFilename(loc string) (string, error) {
 	return filepath.Join(url.Host, url.Path), nil
 }
 
+// init initialises and does some checks
+func (sf *Source) init() error {
+	sf.FileLocation = os.ExpandEnv(sf.FileLocation)
+	sf.tempName = generateName(tempFilePrefix, sf.Ext())
+	// csv will have the only tab with the name of the file.
+	if strings.ToLower(sf.Ext()) == extCSV {
+		sf.SheetAddressRange = []string{sf.tempName}
+	}
+	return nil
+}
+
 // Process gets the file onto google drive, if needed (i.e. it not google
 // spreadsheet).  Returns the file ID on google drive.
-func (sf *SourceFile) Process(client *http.Client) (string, error) {
+func (sf *Source) Process(client *http.Client) (string, error) {
+	// initialise
+	if err := sf.init(); err != nil {
+		return "", err
+	}
 	// determine file type
 	typ := fileType(sf.FileLocation)
 	if typ == srcUnknown {
@@ -139,7 +137,7 @@ func (sf *SourceFile) Process(client *http.Client) (string, error) {
 }
 
 // Delete deletes the temporary file from the google drive.
-func (sf *SourceFile) Delete(client *http.Client) error {
+func (sf *Source) Delete(client *http.Client) error {
 	// if the fileID is nil, then upload function hasn't been called yet
 	if sf.fileID == "" {
 		return errNothingToDelete
@@ -157,17 +155,27 @@ func (sf *SourceFile) Delete(client *http.Client) error {
 	return nil
 }
 
+// Ext returns the file extension.
+func (sf *Source) Ext() string {
+	return filepath.Ext(sf.FileLocation)
+}
+
+// MIMEtype returns the mime type of the file
+func (sf *Source) MIMEtype() string {
+	return mime.TypeByExtension(sf.Ext())
+}
+
 // upload uploads the source data to temporary google spreadsheet on
 // google drive, so that it would be possible to copy data from it.
-func (sf *SourceFile) upload(client *http.Client, sourceData io.Reader) (string, error) {
+func (sf *Source) upload(client *http.Client, sourceData io.Reader) (string, error) {
 	srv, err := drive.New(client)
 	if err != nil {
 		return "", err
 	}
 	// target file name and MIME type format, so that Google Drive would
-	// convert the source excel file to Google Sheets format
+	// convert the source file to Google Sheets format
 	file := drive.File{
-		Name:     generateName(tempFilePrefix, filepath.Ext(sf.FileLocation)),
+		Name:     sf.tempName,
 		MimeType: gsheetMIME,
 	}
 	// content type is necessary for google drive to convert the file to
@@ -175,7 +183,7 @@ func (sf *SourceFile) upload(client *http.Client, sourceData io.Reader) (string,
 		Create(&file).
 		Media(
 			sourceData, // source file data
-			googleapi.ContentType(mime.TypeByExtension(filepath.Ext(sf.FileLocation))), // source file MIME type
+			googleapi.ContentType(sf.MIMEtype()),
 		).
 		Do()
 	if err != nil {
@@ -201,19 +209,16 @@ func (web) convert(client *http.Client, loc string) (string, error) {
 	return upload(client, f, loc)
 }
 
-func (disk) convert(client *http.Client, loc string) (string, error) {
+func (file) convert(client *http.Client, loc string) (string, error) {
 	if strings.HasPrefix(strings.ToLower(loc), "file://") {
 		var err error
-		if loc, err = getFilename(loc); err != nil {
+		if loc, err = filename(loc); err != nil {
 			return "", err
 		}
 	}
-	fi, err := os.Stat(loc)
+	_, err := os.Stat(loc)
 	if err != nil {
 		return "", err
-	}
-	if fi.Size() < minFileSz {
-		return "", errTooSmall
 	}
 
 	f, err := os.Open(loc)

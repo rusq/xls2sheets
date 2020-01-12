@@ -25,13 +25,15 @@ var (
 	consoleAuth = flag.Bool("console", false, "use text authentication prompts instead of opening browser")
 	version     = flag.Bool("version", false, "print program version and quit")
 
-	credentials *string // -auth (see init function)
+	defaultCredentialsFile = filepath.Join(mustStr(os.UserHomeDir()), ".refresh-credentials.json")
+	credentials            = flag.String("auth", defaultCredentialsFile, "file with authentication data")
 )
 
-func init() {
-	home, _ := os.UserHomeDir()
-	defaultCredentialsFile := filepath.Join(home, ".refresh-credentials.json")
-	credentials = flag.String("auth", defaultCredentialsFile, "file with authentication data")
+func mustStr(s string, err error) string {
+	if err != nil {
+		panic(err)
+	}
+	return s
 }
 
 func main() {
@@ -49,7 +51,7 @@ func main() {
 	}
 
 	opts := []authmgr.Option{
-		authmgr.OptTryWebAuth(!*consoleAuth, "/", ""),
+		authmgr.OptTryWebAuth(!*consoleAuth, "/"),
 		authmgr.OptAppName("rusq", "sheets-refresh"),
 		authmgr.OptUseIndexPage(true),
 	}
@@ -73,7 +75,7 @@ func main() {
 	}
 
 	// initialise job from the configuration file data
-	job, err := xls2sheets.FromConfig(jobData)
+	job, err := xls2sheets.NewJobFromConfig(jobData)
 	if err != nil {
 		log.Fatal(err)
 	}
