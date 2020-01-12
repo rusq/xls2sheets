@@ -18,28 +18,6 @@ import (
 
 const userEntered = "USER_ENTERED"
 
-// TargetSpreadsheet bears the information about the target spreadsheet and
-// address within it
-type TargetSpreadsheet struct {
-	// SpreadsheetID is the Google Spreadsheet ID.
-	// Example: 1lqbZm_TCsqcOTvOHPjG2CvZ6PpmDtBg_6qe-J1I91sk
-	SpreadsheetID string `yaml:"spreadsheet_id"`
-	// Location (optional) is the location of the exported file on local disk.
-	// This will save the Google Spreadsheet to local disk.
-	// Example: "/Users/Anna/Documents/rates.xlsx"
-	Location string `yaml:"location,omitempty"`
-	// TargetSheet specifies the start location within the target
-	// Google Sheet for all corresponding SheetAddressRange that
-	// are defined on the source.  Example:  [ Sheet2!B4, Sheet3!A1 ]
-	SheetAddress []string `yaml:"address"`
-	// Clear (optional) specifies if the process should delete all data from
-	// the Target Sheet before updating.
-	Clear bool `yaml:"clear,omitempty"`
-	// Create (optional) specifies if the process should create worksheet
-	// if it does not exist.
-	Create bool `yaml:"create,omitempty"`
-}
-
 var (
 	errEmptyRange     = errors.New("empty source and/or target ranges")
 	errLengthMismatch = errors.New("source and target ranges have different lengths")
@@ -55,13 +33,13 @@ func debugPrintout(valueRange *sheets.ValueRange) {
 }
 
 // clearSheet clears sheet within the target spreadsheet
-func (ts *TargetSpreadsheet) clearSheet(sheetsService *sheets.Service, Range string) (*sheets.ClearValuesResponse, error) {
+func (ts *Target) clearSheet(sheetsService *sheets.Service, Range string) (*sheets.ClearValuesResponse, error) {
 	// https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/clear
 	rb := &sheets.ClearValuesRequest{}
 	return sheetsService.Spreadsheets.Values.Clear(ts.SpreadsheetID, Range, rb).Do()
 }
 
-func (ts *TargetSpreadsheet) addSheetOrFail(sheetsService *sheets.Service, address string) error {
+func (ts *Target) addSheetOrFail(sheetsService *sheets.Service, address string) error {
 	if !ts.Create {
 		// creating sheets is forbidden
 		return fmt.Errorf("address %q referencing nonexisting sheet - create it and restart", address)
@@ -86,10 +64,11 @@ func (ts *TargetSpreadsheet) addSheetOrFail(sheetsService *sheets.Service, addre
 	return nil
 }
 
-// Update updates the target spreadsheet from source spreadsheet
-func (ts *TargetSpreadsheet) Update(client *http.Client, spreadsheetID string, sheetAddressRange []string) error {
+// Update updates the target spreadsheet from source spreadsheet.
+func (ts *Target) Update(client *http.Client, srcSheetID string, sheetAddressRange []string) error {
 	log.Printf("updating data in target spreadsheet %s", ts.SpreadsheetID)
 
+	// TODO: copy everything from spreadsheet if sheetAddressRange and ts.SheetAddress is nil.
 	if len(sheetAddressRange) == 0 || len(ts.SheetAddress) == 0 {
 		return errEmptyRange
 	}
@@ -111,7 +90,7 @@ func (ts *TargetSpreadsheet) Update(client *http.Client, spreadsheetID string, s
 	for sheetIdx := range sheetAddressRange {
 		log.Printf("  * copy range %q to %q", sheetAddressRange[sheetIdx], ts.SheetAddress[sheetIdx])
 		// getting source values
-		values, err := sheetsService.Spreadsheets.Values.Get(spreadsheetID, sheetAddressRange[sheetIdx]).Do()
+		values, err := sheetsService.Spreadsheets.Values.Get(srcSheetID, sheetAddressRange[sheetIdx]).Do()
 		if err != nil {
 			return err
 		}
@@ -143,7 +122,7 @@ func (ts *TargetSpreadsheet) Update(client *http.Client, spreadsheetID string, s
 }
 
 // updateSheet updates only one sheet
-func (ts *TargetSpreadsheet) updateSheet(sheetsService *sheets.Service, data *sheets.ValueRange) (*sheets.BatchUpdateValuesResponse, error) {
+func (ts *Target) updateSheet(sheetsService *sheets.Service, data *sheets.ValueRange) (*sheets.BatchUpdateValuesResponse, error) {
 	const valueInputOption = userEntered // proper formatting of resulting values
 
 	// Reference: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/batchUpdate
@@ -163,7 +142,7 @@ func (ts *TargetSpreadsheet) updateSheet(sheetsService *sheets.Service, data *sh
 	return resp, nil
 }
 
-func (ts *TargetSpreadsheet) download(client *http.Client) error {
+func (ts *Target) download(client *http.Client) error {
 	if ts.Location == "" {
 		return errors.New("target location is empty")
 	}
@@ -189,6 +168,8 @@ func (ts *TargetSpreadsheet) download(client *http.Client) error {
 	return nil
 }
 
+// validPath checks the filepath and removes the file if it exists
+// (maybe would be good to make a backup).
 func validPath(filename string) error {
 	fi, err := os.Stat(filename)
 	if err != nil && !os.IsNotExist(err) {
@@ -205,7 +186,7 @@ func validPath(filename string) error {
 
 // validate checks if all defined in the configuration sheets exist and
 // returns the *sheet.Spreadsheet structure.
-func (ts *TargetSpreadsheet) validate(sheetsService *sheets.Service) (*sheets.Spreadsheet, error) {
+func (ts *Target) validate(sheetsService *sheets.Service) (*sheets.Spreadsheet, error) {
 	// getting information about the spreadsheet
 	log.Printf("  * retrieving information about the spreadsheet")
 	spreadsheet, err := sheetsService.Spreadsheets.Get(ts.SpreadsheetID).Do()

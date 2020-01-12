@@ -4,18 +4,8 @@ import (
 	"net/http"
 )
 
-// Tasks is a map of taskName -> Task.
-type Tasks map[string]*Task
-
-// Task contains all information needed to refresh the Google
-// Spreadsheet from an external file.
-type Task struct {
-	Source *SourceFile        `yaml:"source"` // Source file info (defined below)
-	Target *TargetSpreadsheet `yaml:"target"` // Target sheet info (defined below)
-}
-
 // NewTask creates the task
-func NewTask(source *SourceFile, target *TargetSpreadsheet) *Task {
+func NewTask(source *Source, target *Target) *Task {
 	return &Task{
 		Source: source,
 		Target: target,

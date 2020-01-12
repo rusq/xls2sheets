@@ -60,7 +60,7 @@ func main() {
 	}
 
 	// initialise job from the configuration file data
-	job, err := xls2sheets.FromConfig(jobData)
+	job, err := xls2sheets.NewJobFromConfig(jobData)
 	if err != nil {
 		log.Fatal(err)
 	}
