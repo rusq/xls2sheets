@@ -33,14 +33,14 @@ func debugPrintout(valueRange *sheets.ValueRange) {
 }
 
 // clearSheet clears sheet within the target spreadsheet
-func (ts *Target) clearSheet(sheetsService *sheets.Service, Range string) (*sheets.ClearValuesResponse, error) {
+func (trg *Target) clearSheet(sheetsService *sheets.Service, Range string) (*sheets.ClearValuesResponse, error) {
 	// https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/clear
 	rb := &sheets.ClearValuesRequest{}
-	return sheetsService.Spreadsheets.Values.Clear(ts.SpreadsheetID, Range, rb).Do()
+	return sheetsService.Spreadsheets.Values.Clear(trg.SpreadsheetID, Range, rb).Do()
 }
 
-func (ts *Target) addSheetOrFail(sheetsService *sheets.Service, address string) error {
-	if !ts.Create {
+func (trg *Target) addSheetOrFail(sheetsService *sheets.Service, address string) error {
+	if !trg.Create {
 		// creating sheets is forbidden
 		return fmt.Errorf("address %q referencing nonexisting sheet - create it and restart", address)
 	}
@@ -57,7 +57,7 @@ func (ts *Target) addSheetOrFail(sheetsService *sheets.Service, address string) 
 
 	rb := &sheets.BatchUpdateSpreadsheetRequest{Requests: requests}
 
-	_, err := sheetsService.Spreadsheets.BatchUpdate(ts.SpreadsheetID, rb).Do()
+	_, err := sheetsService.Spreadsheets.BatchUpdate(trg.SpreadsheetID, rb).Do()
 	if err != nil {
 		return err
 	}
@@ -65,53 +65,53 @@ func (ts *Target) addSheetOrFail(sheetsService *sheets.Service, address string) 
 }
 
 // Update updates the target spreadsheet from source spreadsheet.
-func (ts *Target) Update(client *http.Client, srcSheetID string, sheetAddressRange []string) error {
-	log.Printf("updating data in target spreadsheet %s", ts.SpreadsheetID)
+func (trg *Target) Update(client *http.Client, srcSheetID string, sheetAddressRange []string) error {
+	log.Printf("updating data in target spreadsheet %s", trg.SpreadsheetID)
 
 	// TODO: copy everything from spreadsheet if sheetAddressRange and ts.SheetAddress is nil.
-	if len(sheetAddressRange) == 0 || len(ts.SheetAddress) == 0 {
+	if len(sheetAddressRange) == 0 || len(trg.SheetAddress) == 0 {
 		return errEmptyRange
 	}
-	if len(sheetAddressRange) != len(ts.SheetAddress) {
+	if len(sheetAddressRange) != len(trg.SheetAddress) {
 		return errLengthMismatch
 	}
 
-	ts.Location = os.ExpandEnv(ts.Location)
+	trg.Location = os.ExpandEnv(trg.Location)
 
 	sheetsService, err := sheets.New(client)
 	if err != nil {
 		return err
 	}
 	// validation of SheetAddresses
-	if _, err := ts.validate(sheetsService); err != nil {
+	if _, err := trg.validate(sheetsService); err != nil {
 		return err
 	}
 
 	for sheetIdx := range sheetAddressRange {
-		log.Printf("  * copy range %q to %q", sheetAddressRange[sheetIdx], ts.SheetAddress[sheetIdx])
+		log.Printf("  * copy range %q to %q", sheetAddressRange[sheetIdx], trg.SheetAddress[sheetIdx])
 		// getting source values
 		values, err := sheetsService.Spreadsheets.Values.Get(srcSheetID, sheetAddressRange[sheetIdx]).Do()
 		if err != nil {
 			return err
 		}
-		values.Range = ts.SheetAddress[sheetIdx]
-		if ts.Clear {
+		values.Range = trg.SheetAddress[sheetIdx]
+		if trg.Clear {
 			// clearing the spreadsheet
 			log.Print("    * clearing target sheet")
-			if _, err := ts.clearSheet(sheetsService, ts.SheetAddress[sheetIdx]); err != nil {
+			if _, err := trg.clearSheet(sheetsService, trg.SheetAddress[sheetIdx]); err != nil {
 				return err
 			}
 		}
-		resp, err := ts.updateSheet(sheetsService, values)
+		resp, err := trg.updateSheet(sheetsService, values)
 		if err != nil {
 			return err
 		}
 		log.Printf("    * OK: %d cells updated", resp.TotalUpdatedCells)
 	}
-	if ts.Location != "" {
+	if trg.Location != "" {
 		//save the file if location is set
-		log.Printf("  * trying to export to %s", ts.Location)
-		if err := ts.download(client); err != nil {
+		log.Printf("  * trying to export to %s", trg.Location)
+		if err := trg.download(client); err != nil {
 			log.Print("    * export FAILED")
 			return err
 		}

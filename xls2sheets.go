@@ -23,6 +23,8 @@ type Tasks map[string]*Task
 type Task struct {
 	Source *Source `yaml:"source"` // Source file info (defined below)
 	Target *Target `yaml:"target"` // Target sheet info (defined below)
+
+	LeaveJunk bool `yaml:"leave_junk,omitempty"` // leave temporary files on google disk
 }
 
 // Source contains the information about the source file and
@@ -39,7 +41,8 @@ type Source struct {
 	// I.e. "Data!A1:U"
 	SheetAddressRange []string `yaml:"address_range"`
 
-	fileID string // temporary spreadsheet ID
+	fileID   string // temporary spreadsheet ID
+	tempName string //temporary spreadsheet file name
 }
 
 // Target bears the information about the target spreadsheet and

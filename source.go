@@ -22,6 +22,8 @@ import (
 const (
 	// tempFilePrefix used for temporary file uploads
 	tempFilePrefix = "xls2sheets$"
+
+	extCSV = ".csv"
 )
 
 type srcType string
@@ -91,10 +93,24 @@ func filename(loc string) (string, error) {
 	return filepath.Join(url.Host, url.Path), nil
 }
 
+// init initialises and does some checks
+func (sf *Source) init() error {
+	sf.FileLocation = os.ExpandEnv(sf.FileLocation)
+	sf.tempName = generateName(tempFilePrefix, sf.Ext())
+	// csv will have the only tab with the name of the file.
+	if strings.ToLower(sf.Ext()) == extCSV {
+		sf.SheetAddressRange = []string{sf.tempName}
+	}
+	return nil
+}
+
 // Process gets the file onto google drive, if needed (i.e. it not google
 // spreadsheet).  Returns the file ID on google drive.
 func (sf *Source) Process(client *http.Client) (string, error) {
-	sf.FileLocation = os.ExpandEnv(sf.FileLocation)
+	// initialise
+	if err := sf.init(); err != nil {
+		return "", err
+	}
 	// determine file type
 	typ := fileType(sf.FileLocation)
 	if typ == srcUnknown {
@@ -159,7 +175,7 @@ func (sf *Source) upload(client *http.Client, sourceData io.Reader) (string, err
 	// target file name and MIME type format, so that Google Drive would
 	// convert the source file to Google Sheets format
 	file := drive.File{
-		Name:     generateName(tempFilePrefix, sf.Ext()),
+		Name:     sf.tempName,
 		MimeType: gsheetMIME,
 	}
 	// content type is necessary for google drive to convert the file to
