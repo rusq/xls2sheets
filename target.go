@@ -18,6 +18,11 @@ import (
 
 const userEntered = "USER_ENTERED"
 
+const (
+	bakSuffix   = ".bak" // backup file suffix, will be added to file
+	bakFileMode = 0666
+)
+
 var (
 	errEmptyRange     = errors.New("empty source and/or target ranges")
 	errLengthMismatch = errors.New("source and target ranges have different lengths")
@@ -146,7 +151,7 @@ func (trg *Target) download(client *http.Client) error {
 	if trg.Location == "" {
 		return errors.New("target location is empty")
 	}
-	if err := validPath(trg.Location); err != nil {
+	if err := prepareFile(trg.Location); err != nil {
 		return err
 	}
 	drv, err := drive.New(client)
@@ -168,18 +173,40 @@ func (trg *Target) download(client *http.Client) error {
 	return nil
 }
 
-// validPath checks the filepath and removes the file if it exists
+// prepareFile checks the filepath and removes the file if it exists
 // (maybe would be good to make a backup).
-func validPath(filename string) error {
+func prepareFile(filename string) error {
 	fi, err := os.Stat(filename)
-	if err != nil && !os.IsNotExist(err) {
-		return err
+	if err != nil && fi == nil {
+		// no file
+		return nil
 	}
 	if fi != nil && fi.IsDir() {
 		return fmt.Errorf("%s is a directory, will not overwrite", filename)
 	}
-	if os.IsExist(err) {
-		os.Remove(filename)
+	if err := backup(filename); err != nil {
+		return fmt.Errorf("error creating a backup: %s", err)
+	}
+	if err := os.Remove(filename); err != nil {
+		return fmt.Errorf("unable to remove the previous version of local copy: %s", err)
+	}
+	return nil
+}
+
+func backup(filename string) error {
+	bakFilename := filename + bakSuffix
+	bak, err := os.Create(bakFilename)
+	if err != nil {
+		return fmt.Errorf("unable to overwrite backup file: %s", err)
+	}
+	defer bak.Close()
+	src, err := os.Open(filename)
+	if err != nil {
+		return fmt.Errorf("unable to open the local file for backup: %s", err)
+	}
+	defer src.Close()
+	if _, err := io.Copy(bak, src); err != nil {
+		return fmt.Errorf("failed to make a backup: %s", err)
 	}
 	return nil
 }
