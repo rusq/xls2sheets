@@ -65,7 +65,7 @@ const (
 	
 					<div class="row">
 						<div class="btn white darken-6 col s12">
-							<a href="/login" style="text-transform:none">
+							<a href="{{.LoginPath}}" style="text-transform:none">
 								<div class="left">
 									<img width="30px" alt="Google &quot;G&quot; Logo"
 										 src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/53/Google_%22G%22_Logo.svg/512px-Google_%22G%22_Logo.svg.png"/>

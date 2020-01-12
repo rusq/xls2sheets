@@ -5,8 +5,6 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/shibukawa/configdir"
-	"golang.org/x/oauth2"
 )
 
 func TestOptTemplateDir(t *testing.T) {
@@ -40,8 +38,8 @@ func TestOptListenerAddr(t *testing.T) {
 		after   *Manager
 		wantErr bool
 	}{
-		{"listener set", args{"new"}, &Manager{}, &Manager{listenerAddr: ""}, false},
-		{"empty listener", args{""}, &Manager{}, &Manager{listenerAddr: listenerHost + ":" + listenerPort}, false},
+		{"listener set", args{"new"}, &Manager{}, &Manager{opts: options{listenerAddr: ""}}, false},
+		{"empty listener", args{""}, &Manager{}, &Manager{opts: options{listenerAddr: listenerHost + ":" + listenerPort}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -52,7 +50,7 @@ func TestOptListenerAddr(t *testing.T) {
 				t.Errorf("OptListenerAddr() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if diff := cmp.Diff(tt.args.addr, m.listenerAddr); diff != "" {
+			if diff := cmp.Diff(tt.args.addr, m.opts.listenerAddr); diff != "" {
 				t.Errorf("OptListenerAddr() fail, (-want,+got):\n%s", diff)
 			}
 		})
@@ -61,8 +59,9 @@ func TestOptListenerAddr(t *testing.T) {
 
 func TestOptTryWebAuth(t *testing.T) {
 	type args struct {
-		b           bool
-		redirectURL string
+		b               bool
+		rootPath        string
+		redirectURLbase string
 	}
 	tests := []struct {
 		name    string
@@ -72,36 +71,36 @@ func TestOptTryWebAuth(t *testing.T) {
 		wantErr bool
 	}{
 		{"t, set",
-			args{true, "blah"},
-			&Manager{tryWebAuth: false, redirectURL: ""},
-			&Manager{tryWebAuth: true, redirectURL: "blah"},
+			args{true, "", "blah"},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: ""}},
+			&Manager{opts: options{tryWebAuth: true, webRootPath: "", redirectURLBase: "blah"}},
 			false,
 		},
 		{"t, unset",
-			args{true, ""},
-			&Manager{tryWebAuth: false, redirectURL: ""},
-			&Manager{tryWebAuth: true, redirectURL: ""},
+			args{true, "/kek", ""},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: ""}},
+			&Manager{opts: options{tryWebAuth: true, webRootPath: "/kek", redirectURLBase: ""}},
 			false,
 		},
 		{"f, set",
-			args{false, "lol"},
-			&Manager{tryWebAuth: false, redirectURL: ""},
-			&Manager{tryWebAuth: false, redirectURL: "lol"},
+			args{false, "", "lol"},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: ""}},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: "lol"}},
 			false,
 		},
 		{"f, unset",
-			args{false, ""},
-			&Manager{tryWebAuth: false, redirectURL: ""},
-			&Manager{tryWebAuth: false, redirectURL: ""},
+			args{false, "", ""},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: ""}},
+			&Manager{opts: options{tryWebAuth: false, webRootPath: "", redirectURLBase: ""}},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := OptTryWebAuth(tt.args.b, tt.args.redirectURL)
+			got := OptTryWebAuth(tt.args.b, tt.args.rootPath, tt.args.redirectURLbase)
 			m := tt.before
 			err := got(m)
-			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{})); diff != "" {
+			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{}, options{})); diff != "" {
 				t.Errorf("OptTryWebAuth() fail, (-want,+got):\n%s", diff)
 			}
 			if (err != nil) != tt.wantErr {
@@ -124,15 +123,15 @@ func TestOptAppName(t *testing.T) {
 		after   *Manager
 		wantErr bool
 	}{
-		{"1", args{"vendor", "appname"}, &Manager{}, &Manager{vendor: "vendor", appname: "appname", configDir: configdir.New("vendor", "appname")}, false},
-		{"empty", args{"", ""}, &Manager{config: &oauth2.Config{ClientID: "blah"}}, &Manager{config: &oauth2.Config{ClientID: "blah"}, vendor: defVendor, appname: defAppPrefix + "5bf1fd927dfb8679496a2e6cf00cbe50c1c87145", configDir: configdir.New(defVendor, defAppPrefix+"5bf1fd927dfb8679496a2e6cf00cbe50c1c87145")}, false},
+		{"1", args{"vendor", "appname"}, &Manager{}, &Manager{opts: options{vendor: "vendor", appname: "appname"}}, false},
+		{"empty", args{"", ""}, &Manager{}, &Manager{}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := OptAppName(tt.args.vendor, tt.args.name)
+			opt := OptAppName(tt.args.vendor, tt.args.name)
 			m := tt.before
-			err := got(m)
-			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{})); diff != "" {
+			err := opt(m)
+			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{}, options{})); diff != "" {
 				t.Errorf("OptAppName() fail, (-want,+got):\n%s", diff)
 			}
 			if (err != nil) != tt.wantErr {
@@ -154,15 +153,15 @@ func TestOptUseIndexPage(t *testing.T) {
 		after   *Manager
 		wantErr bool
 	}{
-		{"t", args{true}, &Manager{}, &Manager{useIndexPage: true}, false},
-		{"f", args{false}, &Manager{useIndexPage: true}, &Manager{useIndexPage: false}, false},
+		{"t", args{true}, &Manager{}, &Manager{opts: options{useIndexPage: true}}, false},
+		{"f", args{false}, &Manager{opts: options{useIndexPage: true}}, &Manager{opts: options{useIndexPage: false}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := OptUseIndexPage(tt.args.b)
 			m := tt.before
 			err := got(m)
-			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{})); diff != "" {
+			if diff := cmp.Diff(tt.after, m, cmp.AllowUnexported(Manager{}, options{})); diff != "" {
 				t.Errorf("OptUseIndexPage() fail, (-want,+got):\n%s", diff)
 			}
 			if (err != nil) != tt.wantErr {

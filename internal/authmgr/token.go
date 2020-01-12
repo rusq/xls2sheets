@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 
 	"golang.org/x/oauth2"
@@ -17,10 +18,15 @@ const (
 	tmCallback = "callback.html"
 	tmIndex    = "index.html"
 
-	basepath     = "/"
-	loginPath    = basepath + "login"
-	callbackPath = basepath + "callback"
+	basepath  = "/"
+	pLogin    = "login"
+	pCallback = "callback"
 )
+
+type appInfoPage struct {
+	AppName   string
+	LoginPath string
+}
 
 var oauthStateString = randString(16)
 
@@ -98,7 +104,7 @@ func (m *Manager) loadToken(filename string) (*oauth2.Token, error) {
 	return token, nil
 }
 
-// saveToken the token to file.
+// saveToken saves the token to file.
 func (m *Manager) saveToken(token *oauth2.Token) error {
 	var fullPath = m.tokenFile
 	if fullPath == "" {
@@ -115,6 +121,7 @@ func (m *Manager) saveToken(token *oauth2.Token) error {
 	return gob.NewEncoder(f).Encode(token)
 }
 
+// cliTokenRequest does the auth exchange using current terminal.
 func (m *Manager) cliTokenRequest() (*oauth2.Token, error) {
 	authURL := m.Config().AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	fmt.Printf("Go to the following link in your browser:\n%v\n\n"+
@@ -133,11 +140,13 @@ func (m *Manager) cliTokenRequest() (*oauth2.Token, error) {
 	return tok, nil
 }
 
+// browserTokenRequest requests the token through the web.
 func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
 	tokenChan := make(chan *oauth2.Token)
+
 	srv := http.Server{
-		Addr:    m.listenerAddr,
-		Handler: m.authHandler(tokenChan),
+		Addr:    m.opts.listenerAddr,
+		Handler: m.Handlers(tokenChan),
 	}
 
 	errC := make(chan error, 1)
@@ -146,13 +155,13 @@ func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
 		errC <- srv.ListenAndServe()
 		close(isShutdown)
 	}()
-	log.Printf("callback server listening on %s\n", m.listenerAddr)
+	log.Printf("callback server listening on %s\n", m.opts.listenerAddr)
 
 	fmt.Printf("Please follow the Instructions in your browser to authorize %s\n"+
-		"or press [Ctrl]+[C] to cancel...\n", m.appname)
-	if err := OpenBrowser("http://" + m.listenerAddr); err != nil {
+		"or press [Ctrl]+[C] to cancel...\n", m.opts.appname)
+	if err := OpenBrowser("http://" + m.opts.listenerAddr + basepath); err != nil {
 		fmt.Printf("If your browser does not open automatically, please open"+
-			" this link to authenticate google sheets:\n%s\n", m.listenerAddr)
+			" this link to authenticate google sheets:\n%s\n", m.opts.listenerAddr)
 	}
 
 	var token *oauth2.Token
@@ -169,27 +178,31 @@ func (m *Manager) browserTokenRequest() (*oauth2.Token, error) {
 	return token, nil
 }
 
-// authHandler registers authentication handling routes.
-func (m *Manager) authHandler(tokenChan chan<- *oauth2.Token) http.Handler {
+// Handlers registers authentication handling routes.
+func (m *Manager) Handlers(tokenChan chan<- *oauth2.Token) http.Handler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", m.rootHandler)
-	mux.HandleFunc(loginPath, m.loginHandler)
-	mux.HandleFunc(callbackPath, m.createCallbackHandler(tokenChan))
+	mux.HandleFunc(m.opts.webRootPath, m.rootHandler)
+	mux.HandleFunc(m.loginPath(), m.loginHandler)
+	mux.HandleFunc(m.callbackPath(), m.createCallbackHandler(tokenChan))
 
 	return mux
 }
 
-type appInfo struct {
-	AppName string
+func (m *Manager) callbackPath() string {
+	return path.Join(m.opts.webRootPath, pCallback) + "/"
+}
+
+func (m *Manager) loginPath() string {
+	return path.Join(m.opts.webRootPath, pLogin) + "/"
 }
 
 func (m *Manager) rootHandler(w http.ResponseWriter, r *http.Request) {
-	if !m.useIndexPage {
-		http.Redirect(w, r, loginPath, http.StatusTemporaryRedirect)
+	if !m.opts.useIndexPage {
+		http.Redirect(w, r, pLogin, http.StatusTemporaryRedirect)
 		return
 	}
-	if err := tmpl.ExecuteTemplate(w, tmIndex, appInfo{m.appname}); err != nil {
+	if err := tmpl.ExecuteTemplate(w, tmIndex, appInfoPage{m.opts.appname, m.loginPath()}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -204,7 +217,7 @@ func (m *Manager) createCallbackHandler(tokenChan chan<- *oauth2.Token) http.Han
 		state := r.FormValue("state")
 		if state != oauthStateString {
 			log.Printf("invalid oauth state, expected '%s', got '%s'\n", oauthStateString, state)
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, basepath, http.StatusTemporaryRedirect)
 			return
 		}
 
@@ -213,12 +226,12 @@ func (m *Manager) createCallbackHandler(tokenChan chan<- *oauth2.Token) http.Han
 		token, err := m.Config().Exchange(context.Background(), code)
 		if err != nil {
 			fmt.Printf("Code exchange failed with '%s'\n", err)
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+			http.Redirect(w, r, basepath, http.StatusTemporaryRedirect)
 			return
 		}
 
 		// success page, rendering just before shutting down the whole thing.
-		if err := tmpl.ExecuteTemplate(w, tmCallback, appInfo{m.appname}); err != nil {
+		if err := tmpl.ExecuteTemplate(w, tmCallback, appInfoPage{AppName: m.opts.appname}); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 

@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"runtime"
 
 	"github.com/shibukawa/configdir"
@@ -20,7 +21,7 @@ import (
 )
 
 const (
-	maxCredFileSz = 131072 // 128KB for credentials file is more than enough
+	maxCredFileSz = 32768 // 32KiB for credentials file is more than enough
 
 	listenerHost = "localhost"
 	listenerPort = "6061" //  to avoid collision with godoc etc.
@@ -41,12 +42,16 @@ type Manager struct {
 	tokenFile string
 	configDir configdir.ConfigDir
 
-	// options
-	redirectURL  string
-	templateDir  string
-	listenerAddr string
-	tryWebAuth   bool
-	useIndexPage bool
+	opts options
+}
+
+type options struct {
+	webRootPath     string
+	redirectURLBase string
+	templateDir     string
+	listenerAddr    string
+	tryWebAuth      bool
+	useIndexPage    bool
 
 	vendor  string
 	appname string
@@ -54,14 +59,14 @@ type Manager struct {
 
 type tokenReqFunc func() (*oauth2.Token, error)
 
-// apply applies specified options
-func (m *Manager) apply(opts ...Option) (*Manager, error) {
+// applyOpts applies specified options
+func applyOpts(m *Manager, opts ...Option) (*Manager, error) {
 	for _, opt := range opts {
 		if err := opt(m); err != nil {
 			return nil, err
 		}
 	}
-	m.setBrowserAuth(m.tryWebAuth, m.listenerAddr, m.redirectURL)
+	m.setBrowserAuth(m.opts.tryWebAuth, m.opts.listenerAddr, m.opts.redirectURLBase)
 	m.setAppName()
 
 	return m, nil
@@ -69,9 +74,8 @@ func (m *Manager) apply(opts ...Option) (*Manager, error) {
 
 // New creates a new instance of Manager from oauth.Config
 func New(config *oauth2.Config, opts ...Option) (*Manager, error) {
-
-	m := &Manager{config: config}
-	if _, err := m.apply(opts...); err != nil {
+	m, err := applyOpts(&Manager{config: config}, opts...)
+	if err != nil {
 		return nil, err
 	}
 
@@ -79,13 +83,13 @@ func New(config *oauth2.Config, opts ...Option) (*Manager, error) {
 }
 
 func (m *Manager) setAppName() {
-	if m.vendor == "" {
-		m.vendor = defVendor
+	if m.opts.vendor == "" {
+		m.opts.vendor = defVendor
 	}
-	if m.appname == "" {
-		m.appname = defAppPrefix + m.clientIDhash()
+	if m.opts.appname == "" {
+		m.opts.appname = defAppPrefix + m.clientIDhash()
 	}
-	m.configDir = configdir.New(m.vendor, m.appname)
+	m.configDir = configdir.New(m.opts.vendor, m.opts.appname)
 }
 
 // NewFromGoogleCreds creates manager from a credentials file
@@ -136,7 +140,7 @@ func NewFromEnv(idKey, secretKey string, scopes []string, opts ...Option) (*Mana
 }
 
 // setBrowserAuth sets the required variables for web auth.
-func (m *Manager) setBrowserAuth(enabled bool, listenerAddr, redirectURL string) {
+func (m *Manager) setBrowserAuth(enabled bool, listenerAddr, redirectURLBase string) {
 	if !enabled {
 		// terminal prompt
 		m.reqFunc = m.cliTokenRequest
@@ -145,13 +149,21 @@ func (m *Manager) setBrowserAuth(enabled bool, listenerAddr, redirectURL string)
 	// browser token request
 	m.reqFunc = m.browserTokenRequest
 
-	if listenerAddr == "" {
-		m.listenerAddr = fmt.Sprintf("%s:%s", listenerHost, listenerPort)
-	}
-	if redirectURL == "" {
-		m.config.RedirectURL = fmt.Sprintf("http://%s%s", m.listenerAddr, callbackPath)
+	// set request parameters
+	if m.opts.webRootPath == "" {
+		m.opts.webRootPath = basepath
 	} else {
-		m.config.RedirectURL = redirectURL
+		if m.opts.webRootPath[len(m.opts.webRootPath)-1] != '/' {
+			m.opts.webRootPath = m.opts.webRootPath + "/"
+		}
+	}
+	if listenerAddr == "" {
+		m.opts.listenerAddr = fmt.Sprintf("%s:%s", listenerHost, listenerPort)
+	}
+	if redirectURLBase == "" {
+		m.config.RedirectURL = fmt.Sprintf("http://%s%s", m.opts.listenerAddr, m.callbackPath())
+	} else {
+		m.config.RedirectURL = path.Join(redirectURLBase, m.callbackPath())
 	}
 }
 
