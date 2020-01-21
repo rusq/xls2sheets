@@ -1,7 +1,6 @@
 package xls2sheets
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -10,7 +9,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/sheets/v4"
@@ -37,65 +35,34 @@ func debugPrintout(valueRange *sheets.ValueRange) {
 	}
 }
 
-// clearSheet clears sheet within the target spreadsheet
-func (trg *Target) clearSheet(sheetsService *sheets.Service, Range string) (*sheets.ClearValuesResponse, error) {
-	// https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/clear
-	rb := &sheets.ClearValuesRequest{}
-	return sheetsService.Spreadsheets.Values.Clear(trg.SpreadsheetID, Range, rb).Do()
-}
-
-func (trg *Target) addSheetOrFail(sheetsService *sheets.Service, address string) error {
-	if !trg.Create {
-		// creating sheets is forbidden
-		return fmt.Errorf("address %q referencing nonexisting sheet - create it and restart", address)
-	}
-	titleRange := strings.SplitN(address, "!", 2)
-	if titleRange[0] == "" {
-		return fmt.Errorf("invalid address: %q", address)
-	}
-
-	requests := []*sheets.Request{
-		{AddSheet: &sheets.AddSheetRequest{
-			Properties: &sheets.SheetProperties{Title: titleRange[0]},
-		}},
-	}
-
-	rb := &sheets.BatchUpdateSpreadsheetRequest{Requests: requests}
-
-	_, err := sheetsService.Spreadsheets.BatchUpdate(trg.SpreadsheetID, rb).Do()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 // Update updates the target spreadsheet from source spreadsheet.
-func (trg *Target) Update(client *http.Client, srcSheetID string, sheetAddressRange []string) error {
+func (trg *Target) Update(client *http.Client, srcSheetID string, srcAddressRange []string) error {
 	log.Printf("updating data in target spreadsheet %s", trg.SpreadsheetID)
 
 	// TODO: copy everything from spreadsheet if sheetAddressRange and ts.SheetAddress is nil.
-	if len(sheetAddressRange) == 0 || len(trg.SheetAddress) == 0 {
+	if len(srcAddressRange) == 0 || len(trg.SheetAddress) == 0 {
 		return errEmptyRange
 	}
-	if len(sheetAddressRange) != len(trg.SheetAddress) {
+	if len(srcAddressRange) != len(trg.SheetAddress) {
 		return errLengthMismatch
 	}
-
-	trg.Location = os.ExpandEnv(trg.Location)
 
 	sheetsService, err := sheets.New(client)
 	if err != nil {
 		return err
 	}
+	sourcer := sheetSvc{svc: sheetsService, spreadsheetID: srcSheetID}
+	updater := sheetSvc{svc: sheetsService, spreadsheetID: trg.SpreadsheetID}
+
 	// validation of SheetAddresses
-	if _, err := trg.validate(sheetsService); err != nil {
+	if _, err := updater.validate(trg.SheetAddress, trg.Create); err != nil {
 		return err
 	}
 
-	for sheetIdx := range sheetAddressRange {
-		log.Printf("  * copy range %q to %q", sheetAddressRange[sheetIdx], trg.SheetAddress[sheetIdx])
+	for sheetIdx := range srcAddressRange {
+		log.Printf("  * copy range %q to %q", srcAddressRange[sheetIdx], trg.SheetAddress[sheetIdx])
 		// getting source values
-		values, err := sheetsService.Spreadsheets.Values.Get(srcSheetID, sheetAddressRange[sheetIdx]).Do()
+		values, err := sourcer.get(srcAddressRange[sheetIdx])
 		if err != nil {
 			return err
 		}
@@ -103,16 +70,18 @@ func (trg *Target) Update(client *http.Client, srcSheetID string, sheetAddressRa
 		if trg.Clear {
 			// clearing the spreadsheet
 			log.Print("    * clearing target sheet")
-			if _, err := trg.clearSheet(sheetsService, trg.SheetAddress[sheetIdx]); err != nil {
+			if _, err := updater.clear(trg.SheetAddress[sheetIdx]); err != nil {
 				return err
 			}
 		}
-		resp, err := trg.updateSheet(sheetsService, values)
+		resp, err := updater.update(values)
 		if err != nil {
 			return err
 		}
 		log.Printf("    * OK: %d cells updated", resp.TotalUpdatedCells)
 	}
+
+	trg.Location = os.ExpandEnv(trg.Location)
 	if trg.Location != "" {
 		//save the file if location is set
 		log.Printf("  * trying to export to %s", trg.Location)
@@ -126,27 +95,7 @@ func (trg *Target) Update(client *http.Client, srcSheetID string, sheetAddressRa
 	return nil
 }
 
-// updateSheet updates only one sheet
-func (trg *Target) updateSheet(sheetsService *sheets.Service, data *sheets.ValueRange) (*sheets.BatchUpdateValuesResponse, error) {
-	const valueInputOption = userEntered // proper formatting of resulting values
-
-	// Reference: https://developers.google.com/sheets/api/reference/rest/v4/spreadsheets.values/batchUpdate
-	rb := &sheets.BatchUpdateValuesRequest{
-		ValueInputOption: valueInputOption,
-		Data:             []*sheets.ValueRange{data},
-	}
-
-	resp, err := sheetsService.Spreadsheets.Values.
-		BatchUpdate(trg.SpreadsheetID, rb).
-		Context(context.TODO()).
-		Do()
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
+// download downloads the sheet.
 func (trg *Target) download(client *http.Client) error {
 	if trg.Location == "" {
 		return errors.New("target location is empty")
@@ -158,7 +107,11 @@ func (trg *Target) download(client *http.Client) error {
 	if err != nil {
 		return err
 	}
-	resp, err := drv.Files.Export(trg.SpreadsheetID, mime.TypeByExtension(filepath.Ext(trg.Location))).Download()
+	resp, err := drv.Files.
+		Export(
+			trg.SpreadsheetID,
+			mime.TypeByExtension(filepath.Ext(trg.Location))).
+		Download()
 	if err != nil {
 		return err
 	}
@@ -174,7 +127,6 @@ func (trg *Target) download(client *http.Client) error {
 }
 
 // prepareFile checks the filepath and removes the file if it exists
-// (maybe would be good to make a backup).
 func prepareFile(filename string) error {
 	fi, err := os.Stat(filename)
 	if err != nil && fi == nil {
@@ -209,36 +161,4 @@ func backup(filename string) error {
 		return fmt.Errorf("failed to make a backup: %s", err)
 	}
 	return nil
-}
-
-// validate checks if all defined in the configuration sheets exist and
-// returns the *sheet.Spreadsheet structure.
-func (trg *Target) validate(sheetsService *sheets.Service) (*sheets.Spreadsheet, error) {
-	// getting information about the spreadsheet
-	log.Printf("  * retrieving information about the spreadsheet")
-	spreadsheet, err := sheetsService.Spreadsheets.Get(trg.SpreadsheetID).Do()
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("  * validating target configuration")
-	// need to ensure that all provided addresses are referencing valid
-	// sheets
-	for _, address := range trg.SheetAddress {
-		valid := false
-
-		for _, sheet := range spreadsheet.Sheets {
-			if strings.HasPrefix(address, sheet.Properties.Title) {
-				valid = true
-				break
-			}
-		}
-		if !valid {
-			if err := trg.addSheetOrFail(sheetsService, address); err != nil {
-				return nil, err
-			}
-
-		}
-	}
-	return spreadsheet, nil
 }

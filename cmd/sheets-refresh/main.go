@@ -61,11 +61,10 @@ func main() {
 
 	// check parameters
 	if *jobConfig == "" {
-		if !*resetAuth {
+		if *resetAuth {
 			os.Exit(0) // exiting without error if we were asked to just reset
 		}
 		log.Fatal("no -job <yaml file> specified")
-
 	}
 
 	// read the configuration file
