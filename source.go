@@ -124,7 +124,7 @@ func (sf *Source) Process(client *http.Client) (string, error) {
 		return "", errUnknown
 	}
 
-	log.Printf("+ trying to open: %s", sf.FileLocation)
+	log.Printf("+ opening: %s", sf.FileLocation)
 	id, err := c.convert(client, sf.FileLocation)
 	if err != nil {
 		return "", err

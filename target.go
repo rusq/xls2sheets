@@ -84,7 +84,7 @@ func (trg *Target) Update(client *http.Client, srcSheetID string, srcAddressRang
 	trg.Location = os.ExpandEnv(trg.Location)
 	if trg.Location != "" {
 		//save the file if location is set
-		log.Printf("  * trying to export to %s", trg.Location)
+		log.Printf("  * exporting to %s", trg.Location)
 		if err := trg.download(client); err != nil {
 			log.Print("    * export FAILED")
 			return err
@@ -95,13 +95,10 @@ func (trg *Target) Update(client *http.Client, srcSheetID string, srcAddressRang
 	return nil
 }
 
-// download downloads the sheet.
+// download downloads the spreadsheet.
 func (trg *Target) download(client *http.Client) error {
 	if trg.Location == "" {
 		return errors.New("target location is empty")
-	}
-	if err := prepareFile(trg.Location); err != nil {
-		return err
 	}
 	drv, err := drive.New(client)
 	if err != nil {
@@ -115,6 +112,9 @@ func (trg *Target) download(client *http.Client) error {
 	if err != nil {
 		return err
 	}
+	if err := backup(trg.Location); err != nil {
+		return fmt.Errorf("error creating a backup: %s", err)
+	}
 	f, err := os.Create(trg.Location)
 	if err != nil {
 		return err
@@ -122,25 +122,6 @@ func (trg *Target) download(client *http.Client) error {
 	defer f.Close()
 	if _, err := io.Copy(f, resp.Body); err != nil {
 		return err
-	}
-	return nil
-}
-
-// prepareFile checks the filepath and removes the file if it exists
-func prepareFile(filename string) error {
-	fi, err := os.Stat(filename)
-	if err != nil && fi == nil {
-		// no file
-		return nil
-	}
-	if fi != nil && fi.IsDir() {
-		return fmt.Errorf("%s is a directory, will not overwrite", filename)
-	}
-	if err := backup(filename); err != nil {
-		return fmt.Errorf("error creating a backup: %s", err)
-	}
-	if err := os.Remove(filename); err != nil {
-		return fmt.Errorf("unable to remove the previous version of local copy: %s", err)
 	}
 	return nil
 }

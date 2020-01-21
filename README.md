@@ -140,19 +140,19 @@ or press [Ctrl]+[C] to cancel...
 2019/12/09 20:08:07 Saving token file to: /Users/rustamgilyazov/Library/Caches/rusq/sheets-refresh/auth-token.bin
 2019/12/09 20:08:07 starting task: "01_monthly_rates"
 2019/12/09 20:08:07 + type detected as: remote file
-2019/12/09 20:08:07 + trying to open: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-monthly.xlsx
+2019/12/09 20:08:07 + opening: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-monthly.xlsx
 2019/12/09 20:09:16 updating data in target spreadsheet 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
 2019/12/09 20:09:16   * retrieving information about the spreadsheet
 2019/12/09 20:09:17   * validating target configuration
 2019/12/09 20:09:17   * copy range "Data!A1:U" to "Monthly Rates"
 2019/12/09 20:09:18     * clearing target sheet
 2019/12/09 20:09:20     * OK: 5356 cells updated
-2019/12/09 20:09:20   * trying to export to ./sample.ods
+2019/12/09 20:09:20   * exporting to ./sample.ods
 2019/12/09 20:09:27     * export OK
 2019/12/09 20:09:28 task "01_monthly_rates": success
 2019/12/09 20:09:28 starting task: "02_daily_rates"
 2019/12/09 20:09:28 + type detected as: remote file
-2019/12/09 20:09:28 + trying to open: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-daily.xlsx
+2019/12/09 20:09:28 + opening: https://www.rbnz.govt.nz/-/media/ReserveBank/Files/Statistics/tables/b1/hb1-daily.xlsx
 2019/12/09 20:09:34 updating data in target spreadsheet 1Qq9dCCj_DcnLE9lAOStEhhC37Crf7a77nBrKM-xhZZQ
 2019/12/09 20:09:34   * retrieving information about the spreadsheet
 2019/12/09 20:09:34   * validating target configuration
