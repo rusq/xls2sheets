@@ -78,10 +78,7 @@ func fileType(loc string) srcType {
 
 func fileExists(loc string) bool {
 	_, err := os.Stat(loc)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func filename(loc string) (string, error) {
