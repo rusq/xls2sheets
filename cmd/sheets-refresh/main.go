@@ -15,7 +15,10 @@ import (
 	"google.golang.org/api/sheets/v4"
 )
 
-var build = ""
+var (
+	build   = ""
+	version = ""
+)
 
 var exepath = filepath.Dir(os.Args[0])
 
@@ -25,7 +28,7 @@ var (
 		"this will trigger reauthentication")
 	jobConfig   = flag.String("job", "", "configuration `file` with job definition")
 	consoleAuth = flag.Bool("console", false, "use text authentication prompts instead of opening browser")
-	version     = flag.Bool("version", false, "print program version and quit")
+	ver         = flag.Bool("version", false, "print program version and quit")
 
 	defaultCredentialsFile = filepath.Join(exepath, ".refresh-credentials.json")
 	credentials            = flag.String("auth", defaultCredentialsFile, "file with authentication data")
@@ -41,8 +44,8 @@ func mustStr(s string, err error) string {
 func main() {
 	flag.Parse()
 
-	if *version {
-		fmt.Println(build)
+	if *ver {
+		fmt.Printf("%s (%s)", version, build)
 		os.Exit(0)
 	}
 
