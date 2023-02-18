@@ -30,4 +30,4 @@ vendor
 *.pdf
 
 dist/
-.refresh_credentials.json
+.refresh-credentials.json
