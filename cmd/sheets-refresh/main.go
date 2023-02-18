@@ -17,6 +17,8 @@ import (
 
 var build = ""
 
+var exepath = filepath.Dir(os.Args[0])
+
 // command line parameters
 var (
 	resetAuth = flag.Bool("reset", false, "deletes the locally stored token before execution\n"+
@@ -25,7 +27,7 @@ var (
 	consoleAuth = flag.Bool("console", false, "use text authentication prompts instead of opening browser")
 	version     = flag.Bool("version", false, "print program version and quit")
 
-	defaultCredentialsFile = filepath.Join(mustStr(os.UserHomeDir()), ".refresh-credentials.json")
+	defaultCredentialsFile = filepath.Join(exepath, ".refresh-credentials.json")
 	credentials            = flag.String("auth", defaultCredentialsFile, "file with authentication data")
 )
 

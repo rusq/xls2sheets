@@ -13,9 +13,9 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"runtime"
 
-	"github.com/shibukawa/configdir"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -39,8 +39,7 @@ type Manager struct {
 
 	reqFunc tokenReqFunc
 
-	tokenFile string
-	configDir configdir.ConfigDir
+	cacheDir string
 
 	opts options
 }
@@ -67,7 +66,6 @@ func applyOpts(m *Manager, opts ...Option) (*Manager, error) {
 		}
 	}
 	m.setBrowserAuth(m.opts.tryWebAuth, m.opts.listenerAddr, m.opts.redirectURLBase)
-	m.setAppName()
 
 	return m, nil
 }
@@ -78,18 +76,23 @@ func New(config *oauth2.Config, opts ...Option) (*Manager, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	return m, nil
-}
-
-func (m *Manager) setAppName() {
 	if m.opts.vendor == "" {
 		m.opts.vendor = defVendor
 	}
 	if m.opts.appname == "" {
 		m.opts.appname = defAppPrefix + m.clientIDhash()
 	}
-	m.configDir = configdir.New(m.opts.vendor, m.opts.appname)
+	ucd, err := os.UserCacheDir()
+	if err != nil {
+		return nil, err
+	}
+	m.cacheDir = filepath.Join(ucd, m.opts.vendor, m.opts.appname)
+	// ensure dir exists
+	if err := os.MkdirAll(m.cacheDir, 0700); err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 // NewFromGoogleCreds creates manager from a credentials file
@@ -98,7 +101,7 @@ func NewFromGoogleCreds(filename string, scopes []string, opts ...Option) (*Mana
 	if err != nil {
 		return nil, err
 	}
-	if fi.Size() == 0 || fi.Size() > maxCredFileSz { //1 MB
+	if fi.Size() == 0 || fi.Size() > maxCredFileSz {
 		return nil, fmt.Errorf("suspicious file size: %d", fi.Size())
 	}
 
@@ -114,11 +117,11 @@ func NewFromGoogleCreds(filename string, scopes []string, opts ...Option) (*Mana
 
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read client secret file: %v", err)
+		return nil, fmt.Errorf("unable to read the client secret file: %v", err)
 	}
 	config, err := google.ConfigFromJSON(b, scopes...)
 	if err != nil {
-		return nil, fmt.Errorf("unable to parse client secret file to config: %s", err)
+		return nil, fmt.Errorf("unable to parse the client secret file: %s", err)
 	}
 	return New(config, opts...)
 }
@@ -169,7 +172,10 @@ func (m *Manager) setBrowserAuth(enabled bool, listenerAddr, redirectURLBase str
 
 func (m *Manager) clientIDhash() string {
 	h := sha1.New()
-	io.WriteString(h, m.config.ClientID)
+	_, err := io.WriteString(h, m.config.ClientID)
+	if err != nil {
+		panic("clientIDhash: " + err.Error())
+	}
 	return hex.EncodeToString(h.Sum(nil))
 }
 
@@ -188,7 +194,7 @@ func (m *Manager) Token() (*oauth2.Token, error) {
 		return m.token, nil
 	}
 	// try to load from disk
-	token, err := m.loadToken(m.tokenName())
+	token, err := m.loadToken(filepath.Join(m.cacheDir, m.tokenName()))
 	if err != nil {
 		// try to auth
 		token, err = m.reqFunc()

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"sort"
 
-	"github.com/go-yaml/yaml"
+	"github.com/goccy/go-yaml"
 )
 
 // Job is a collection of Tasks

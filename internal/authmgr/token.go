@@ -30,45 +30,10 @@ type appInfoPage struct {
 
 var oauthStateString = randString(16)
 
-//
-// PATH functions
-//
-
-// createPath creates the path to token and returns the full path to
-// tokenFile including tokenfilename.  I.e. on mac:
-//    /Users/Youruser/Library/Caches/rusq/sheets-refresh/token.json
-func (m *Manager) createPath(path string) string {
-	tokenPath := m.path(path)
-	if tokenPath != "" {
-		// do nothing if the path exists
-		return tokenPath
-	}
-
-	cache := m.configDir.QueryCacheFolder()
-	if err := cache.MkdirAll(); err != nil {
-		log.Fatalf("unable to create cache directory structure")
-	}
-	return filepath.Join(cache.Path, path)
-}
-
-func (m *Manager) path(filename string) string {
-	m.configDir.LocalPath, _ = filepath.Abs(".")
-	folder := m.configDir.QueryFolderContainsFile(filename)
-	if folder != nil {
-		return filepath.Join(folder.Path, filename)
-	}
-	// check the existance in cache folder
-	cache := m.configDir.QueryCacheFolder()
-	if cache.Exists(m.tokenName()) {
-		return filepath.Join(cache.Path, m.tokenName())
-	}
-	return ""
-}
-
 // removeToken finds and removes tokenFile from cache folder.  If the token
 // file is not present it does nothing.
 func (m *Manager) removeToken() error {
-	tokenPath := m.path(m.tokenName())
+	tokenPath := filepath.Join(m.cacheDir, m.tokenName())
 	if tokenPath == "" {
 		return nil
 	}
@@ -83,13 +48,7 @@ func (m *Manager) removeToken() error {
 //
 
 // loadToken creates a new token manager from token file.
-func (m *Manager) loadToken(filename string) (*oauth2.Token, error) {
-	// get the token from local storage
-	tokenPath := m.path(filename)
-	if tokenPath == "" {
-		return nil, fmt.Errorf("not found: %s", filename)
-	}
-
+func (m *Manager) loadToken(tokenPath string) (*oauth2.Token, error) {
 	f, err := os.Open(tokenPath)
 	if err != nil {
 		return nil, err
@@ -106,10 +65,7 @@ func (m *Manager) loadToken(filename string) (*oauth2.Token, error) {
 
 // saveToken saves the token to file.
 func (m *Manager) saveToken(token *oauth2.Token) error {
-	var fullPath = m.tokenFile
-	if fullPath == "" {
-		fullPath = m.createPath(m.tokenName())
-	}
+	fullPath := filepath.Join(m.cacheDir, m.tokenName())
 
 	log.Printf("Saving token file to: %s", fullPath)
 	f, err := os.OpenFile(fullPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
@@ -117,7 +73,6 @@ func (m *Manager) saveToken(token *oauth2.Token) error {
 		return fmt.Errorf("unable to cache oauth token: %v", err)
 	}
 	defer f.Close()
-	m.tokenFile = fullPath
 	return gob.NewEncoder(f).Encode(token)
 }
 
