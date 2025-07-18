@@ -1,17 +1,16 @@
 module github.com/rusq/xls2sheets
 
-go 1.19
+go 1.23.0
 
 require (
 	github.com/goccy/go-yaml v1.9.8
 	github.com/google/go-cmp v0.5.9
-	golang.org/x/oauth2 v0.5.0
+	golang.org/x/oauth2 v0.27.0
 	google.golang.org/api v0.108.0
 )
 
 require (
-	cloud.google.com/go/compute v1.18.0 // indirect
-	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/fatih/color v1.10.0 // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
